@@ -1,0 +1,14 @@
+format_version: v1.0
+configName: default
+folderName: spi_cam_test
+frameworkPath: C:\Users\r\.mcc\HarmonyContent
+processor: ATSAMV71Q21B
+projectName: spi_cam_test
+settings:
+  PackageFilter: ''
+  FORCE_OPTIMIZATION: 'false'
+  GENERATE_BACKUP: 'true'
+  TRUSTZONE: 'false'
+  CMSISPath: dev_packs\arm\CMSIS\5.8.0
+  MERGE_STRATEGY: USER_ALL
+  DFPPath: dev_packs\Microchip\SAMV71_DFP\4.10.230\samv71b\atdf\ATSAMV71Q21B.atdf
