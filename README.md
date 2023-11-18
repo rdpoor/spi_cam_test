@@ -21,5 +21,5 @@ and this callback function:
 
 It would be fun to write a simple app using the API that displays the camera
 output in real-time using ASCII art, along the lines of the 
-(video-to_ascii)[https://github.com/joelibaceta/video-to-ascii/tree/master]
+[video-to_ascii](https://github.com/joelibaceta/video-to-ascii/tree/master)
 github repository.
