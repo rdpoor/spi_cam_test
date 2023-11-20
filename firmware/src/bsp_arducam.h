@@ -1,5 +1,5 @@
 /**
- * @file bsp_ov2640.h
+ * @file bsp_arducam.h
  *
  * MIT License
  *
@@ -25,18 +25,18 @@
  */
 
 /**
- * @brief platform-dependent interface to OV2640 video camera module
+ * @brief platform-dependent interface to ARDUCAM OV2460-based video camera
  */
 
-#ifndef _BSP_OV2640_H_
-#define _BSP_OV2640_H_
+#ifndef _BSP_ARDUCAM_H_
+#define _BSP_ARDUCAM_H_
 
 // *****************************************************************************
 // Includes
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 // =============================================================================
 // C++ compatibility
@@ -51,28 +51,33 @@ extern "C" {
 // *****************************************************************************
 // Public declarations
 
-int spi_write_read_blocking(void *spi, const uint8_t *src, uint8_t *dst,
-                            size_t len);
+void bsp_arducam_init(void);
 
-int spi_read_blocking(void *spi, uint8_t repeated_tx_data, uint8_t *dst,
-                      size_t len);
+// int bsp_arducam_spi_xfer(void *spi, const uint8_t *src, uint8_t *dst,
+//                          size_t len);
 
-int spi_write_blocking(void *spi, const uint8_t *src, size_t len);
+void bsp_arducam_spi_cs_enable(void);
 
-unsigned int i2c_init (void *i2c, unsigned int baudrate);
+void bsp_arducam_spi_cs_disable(void);
 
-int i2c_write_blocking(void *i2c, uint8_t addr, const uint8_t *src, size_t len,
-                       bool nostop);
+int bsp_arducam_spi_read(void *spi, uint8_t repeated_tx_data, uint8_t *dst,
+                         size_t len);
 
-int i2c_read_blocking(void *i2c, uint8_t addr, uint8_t *dst, size_t len,
-                      bool nostop);
+int bsp_arducam_spi_write(void *spi, const uint8_t *src, size_t len);
 
-unsigned int uart_init (void *uart, unsigned int baudrate);
+unsigned int bsp_arducam_i2c_init(void *i2c, unsigned int baudrate);
 
+int bsp_arducam_i2c_write(void *i2c, uint8_t addr, const uint8_t *src,
+                          size_t len, bool nostop);
 
-void uart_write_blocking (void *uart, const uint8_t *src, size_t len);
+int bsp_arducam_i2c_read(void *i2c, uint8_t addr, uint8_t *dst, size_t len,
+                         bool nostop);
 
-void sleep_ms(int ms);
+unsigned int bsp_arducam_uart_init(void *uart, unsigned int baudrate);
+
+void bsp_arducam_uart_write(void *uart, const uint8_t *src, size_t len);
+
+void bsp_arducam_sleep_ms(int ms);
 
 // *****************************************************************************
 // End of file
@@ -81,4 +86,4 @@ void sleep_ms(int ms);
 }
 #endif
 
-#endif /* #ifndef _BSP_OV2640_H_ */
+#endif /* #ifndef _BSP_ARDUCAM_H_ */

@@ -25,7 +25,7 @@
  */
 
 /**
- * @brief Platform specific functions for the OV2460 SPI-based camera.
+ * @brief Platform specific functions for the Arducam OV2460 SPI-based camera.
  */
 
 #ifndef _ARDUCAM_H_
@@ -47,104 +47,60 @@ extern "C" {
 // *****************************************************************************
 // Public types and definitions
 
-/*spi pin source*/
-#define SPI_PORT (void *)0
-#define PIN_SCK 2
-#define PIN_MOSI 3
-#define PIN_MISO 4
-#define PIN_CS 5
+typedef enum {
+    ARDUCAM_FMT_JPEG,
+    ARDUCAM_FMT_RGB565,
+    ARDUCAM_FMT_YUV,
+} arducam_fmt_t;
 
-#define JPEG   0
-#define RGB565 1
-#define YUV    2
+typedef enum {
+    res_160x120,   // 160x120
+    res_176x144,   // 176x144
+    res_320x240,   // 320x240
+    res_352x288,   // 352x288
+    res_640x480,   // 640x480
+    res_800x600,   // 800x600
+    res_1024x768,  // 1024x768
+    res_1280x1024, // 1280x1024
+    res_1600x1200, // 1600x1200
+} arducam_res_t;
 
-/*i2c pin source */
-#define I2C_PORT (void *)0
-#define PIN_SDA 8
-#define PIN_SCL 9
-#define WRITE_BIT 0x80
+// /*i2c pin source */
+// #define I2C_PORT (void *)0
+// #define PIN_SDA 8
+// #define PIN_SCL 9
 
-#define UART_ID (void *)0
-#define BAUD_RATE 921600
-#define DATA_BITS 8
-#define STOP_BITS 1
-#define PARITY UART_PARITY_NONE
-#define UART_TX_PIN 0
-#define UART_RX_PIN 1
+// #define UART_ID (void *)0
+// #define BAUD_RATE 921600
+// #define DATA_BITS 8
+// #define STOP_BITS 1
+// #define PARITY UART_PARITY_NONE
+// #define UART_TX_PIN 0
+// #define UART_RX_PIN 1
 
-/**
- * @brief a register / value pair
- */
-struct sensor_reg {
-    unsigned int reg;
-    unsigned int val;
-};
-
-struct sensor_info {
-    uint8_t sensor_slave_address;
-    uint8_t address_size;
-    uint8_t data_size;
-    uint16_t sensor_id;
-};
-
-typedef struct _camera_operate {
-    uint8_t slave_address;
-    void (*systemInit)(void);
-    uint8_t (*busDetect) (void);
-    uint8_t (*cameraProbe) (void);
-    void  (*cameraInit) (uint8_t format);
-    void (*setJpegSize)(uint8_t size);
-} camera_operate_t;
-
-#define res_160x120 0      // 160x120
-#define res_176x144 1      // 176x144
-#define res_320x240 2      // 320x240
-#define res_352x288 3      // 352x288
-#define res_640x480 4      // 640x480
-#define res_800x600 5      // 800x600
-#define res_1024x768 6     // 1024x768
-#define res_1280x1024 7    // 1280x1024
-#define res_1600x1200 8    // 1600x1200
-#define ARDUCHIP_FIFO 0x04 // FIFO and I2C control
-#define FIFO_CLEAR_MASK 0x01
-#define FIFO_START_MASK 0x02
-#define FIFO_RDPTR_RST_MASK 0x10
-#define FIFO_WRPTR_RST_MASK 0x20
-#define ARDUCHIP_GPIO 0x06 // GPIO Write Register
-#define GPIO_RESET_MASK                                                        \
-    0x01 // 0 = Sensor reset,                           1 =  Sensor normal
-         // operation
-#define GPIO_PWDN_MASK 0x02 // 0 = Sensor normal operation,    1 = Sensor
-                            // standby
-#define GPIO_PWREN_MASK                                                        \
-    0x04 // 0 = Sensor LDO disable,           1 = sensor LDO enable
-
-#define BURST_FIFO_READ 0x3C  // Burst FIFO read operation
-#define SINGLE_FIFO_READ 0x3D // Single FIFO read operation
-
-#define ARDUCHIP_REV 0x40 // ArduCHIP revision
-#define VER_LOW_MASK 0x3F
-#define VER_HIGH_MASK 0xC0
-
-#define ARDUCHIP_TRIG 0x41 // Trigger source
-#define VSYNC_MASK 0x01
-#define SHUTTER_MASK 0x02
-#define CAP_DONE_MASK 0x08
-
-#define FIFO_SIZE1 0x42 // Camera write FIFO size[7:0] for burst to read
-#define FIFO_SIZE2 0x43 // Camera write FIFO size[15:8]
-#define FIFO_SIZE3 0x44 // Camera write FIFO size[18:16]
+// struct sensor_info {
+//     uint8_t sensor_slave_address;
+//     uint8_t address_size;
+//     uint8_t data_size;
+//     uint16_t sensor_id;
+// };
 
 // *****************************************************************************
 // Public declarations
 
-/**
- * @brief Return a structure containing the functions pointers that comprise
- * the API for the ov2460 (except for the capture() function).
- */
-camera_operate_t *arducam_api(void);
+void arducam_system_init(void);
 
-void capture(uint8_t *imageDat);
+uint8_t arducam_bus_detect(void);
+
+uint8_t arducam_camera_probe(void);
+
+void arducam_camera_init(arducam_fmt_t format);
+
+void arducam_set_jpeg_size(arducam_res_t resolution);;
+
+void arducam_capture(uint8_t *imageDat);
+
+void arducam_capture_single(void);
 
 // *****************************************************************************
 // End of file

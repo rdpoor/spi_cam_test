@@ -83,7 +83,6 @@ void __attribute__((optimize("-O1"), long_call, noreturn, used))Dummy_Handler(vo
 /* Device vectors list dummy definition*/
 extern void SVCall_Handler             ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void PendSV_Handler             ( void ) __attribute__((weak, alias("Dummy_Handler")));
-extern void SysTick_Handler            ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void SUPC_Handler               ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void RSTC_Handler               ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void RTC_Handler                ( void ) __attribute__((weak, alias("Dummy_Handler")));
@@ -103,6 +102,7 @@ extern void PIOD_Handler               ( void ) __attribute__((weak, alias("Dumm
 extern void PIOE_Handler               ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void HSMCI_Handler              ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void TWIHS1_Handler             ( void ) __attribute__((weak, alias("Dummy_Handler")));
+extern void SPI0_Handler               ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void SSC_Handler                ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void TC0_CH0_Handler            ( void ) __attribute__((weak, alias("Dummy_Handler")));
 extern void TC0_CH1_Handler            ( void ) __attribute__((weak, alias("Dummy_Handler")));
@@ -196,7 +196,7 @@ const H3DeviceVectors exception_table=
     .pfnHSMCI_Handler              = HSMCI_Handler,
     .pfnTWIHS0_Handler             = TWIHS0_InterruptHandler,
     .pfnTWIHS1_Handler             = TWIHS1_Handler,
-    .pfnSPI0_Handler               = SPI0_InterruptHandler,
+    .pfnSPI0_Handler               = SPI0_Handler,
     .pfnSSC_Handler                = SSC_Handler,
     .pfnTC0_CH0_Handler            = TC0_CH0_Handler,
     .pfnTC0_CH1_Handler            = TC0_CH1_Handler,

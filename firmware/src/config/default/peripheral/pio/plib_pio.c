@@ -68,8 +68,8 @@ void PIO_Initialize ( void )
     ((pio_registers_t*)PIO_PORT_A)->PIO_PER = ~0x200018U;
     ((pio_registers_t*)PIO_PORT_A)->PIO_MDDR = 0xFFFFFFFFU;
     /* PORTA Pull Up Enable/Disable as per MHC selection */
-    ((pio_registers_t*)PIO_PORT_A)->PIO_PUDR = ~0x200U;
-    ((pio_registers_t*)PIO_PORT_A)->PIO_PUER = 0x200U;
+    ((pio_registers_t*)PIO_PORT_A)->PIO_PUDR = ~0x218U;
+    ((pio_registers_t*)PIO_PORT_A)->PIO_PUER = 0x218U;
     /* PORTA Pull Down Enable/Disable as per MHC selection */
     ((pio_registers_t*)PIO_PORT_A)->PIO_PPDDR = 0xFFFFFFFFU;
     /* PORTA Output Write Enable */
@@ -123,11 +123,11 @@ void PIO_Initialize ( void )
 
     /************************ PIO D Initialization ************************/
     /* PORTD Peripheral Function Selection */
-    ((pio_registers_t*)PIO_PORT_D)->PIO_ABCDSR[0]= 0x8700000U;
+    ((pio_registers_t*)PIO_PORT_D)->PIO_ABCDSR[0]= 0x700000U;
     ((pio_registers_t*)PIO_PORT_D)->PIO_ABCDSR[1]= 0x0U;
     /* PORTD PIO Disable and Peripheral Enable*/
-    ((pio_registers_t*)PIO_PORT_D)->PIO_PDR = 0x8700000U;
-    ((pio_registers_t*)PIO_PORT_D)->PIO_PER = ~0x8700000U;
+    ((pio_registers_t*)PIO_PORT_D)->PIO_PDR = 0x700000U;
+    ((pio_registers_t*)PIO_PORT_D)->PIO_PER = ~0x700000U;
     ((pio_registers_t*)PIO_PORT_D)->PIO_MDDR = 0xFFFFFFFFU;
     /* PORTD Pull Up Enable/Disable as per MHC selection */
     ((pio_registers_t*)PIO_PORT_D)->PIO_PUDR = 0xFFFFFFFFU;
@@ -136,10 +136,10 @@ void PIO_Initialize ( void )
     /* PORTD Output Write Enable */
     ((pio_registers_t*)PIO_PORT_D)->PIO_OWER = PIO_OWER_Msk;
     /* PORTD Output Direction Enable */
-    ((pio_registers_t*)PIO_PORT_D)->PIO_OER = 0x0U;
-    ((pio_registers_t*)PIO_PORT_D)->PIO_ODR = ~0x0U;
+    ((pio_registers_t*)PIO_PORT_D)->PIO_OER = 0xa000000U;
+    ((pio_registers_t*)PIO_PORT_D)->PIO_ODR = ~0xa000000U;
     /* Initialize PORTD pin state */
-    ((pio_registers_t*)PIO_PORT_D)->PIO_ODSR = 0x0U;
+    ((pio_registers_t*)PIO_PORT_D)->PIO_ODSR = 0xa000000U;
     /* PORTD drive control */
     ((pio_registers_t*)PIO_PORT_D)->PIO_DRIVER = 0x0U;
 

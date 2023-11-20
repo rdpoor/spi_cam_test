@@ -21,130 +21,80 @@
     files.
  *******************************************************************************/
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Included Files
-// *****************************************************************************
-// *****************************************************************************
-
 #include "app.h"
+#include "arducam.h"
+#include <stdarg.h>
+#include <stdio.h>
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Global Data Definitions
-// *****************************************************************************
-// *****************************************************************************
+// YUV format is set at 96 x 96 x 2
+#define IMG_WIDTH 96
+#define IMG_HEIGHT 96
+#define IMG_DEPTH 1     // only the 1-byte Y (luminance) channel
 
-// *****************************************************************************
-/* Application Data
+static uint8_t s_img_buf[IMG_WIDTH * IMG_HEIGHT * IMG_DEPTH];
 
-  Summary:
-    Holds application data
+static inline bool is_even(int n) { return (n & 1) == 0; }
 
-  Description:
-    This structure holds the application's data.
+static void display_img(const uint8_t *buf, size_t n_bytes);
 
-  Remarks:
-    This structure should be initialized by the APP_Initialize function.
+static const char *luminance_to_ascii(uint8_t pixel);
 
-    Application strings and buffers are be defined outside this structure.
-*/
-
-APP_DATA appData;
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Callback Functions
-// *****************************************************************************
-// *****************************************************************************
-
-/* TODO:  Add any necessary callback functions.
-*/
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Local Functions
-// *****************************************************************************
-// *****************************************************************************
-
-
-/* TODO:  Add any necessary local functions.
-*/
-
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Initialization and State Machine Functions
-// *****************************************************************************
-// *****************************************************************************
-
-/*******************************************************************************
-  Function:
-    void APP_Initialize ( void )
-
-  Remarks:
-    See prototype in app.h.
- */
-
-void APP_Initialize ( void )
-{
-    /* Place the App state machine in its initial state. */
-    appData.state = APP_STATE_INIT;
-
-
-
-    /* TODO: Initialize your application's state machine and other
-     * parameters.
-     */
+void APP_Initialize(void) {
+    printf("\n# =========================="
+           "\n# ArduCam OV2460 Test v%s",
+           APP_VERSION);
+    arducam_system_init();
+    if (arducam_bus_detect()) {
+        APP_panic("\nArducam SPI bus detect failed");
+    }
+    if (arducam_camera_probe()) {
+        APP_panic("\nArducam camera probe failed");
+    }
+    arducam_camera_init(ARDUCAM_FMT_YUV); // 96 x 96 x 2
 }
 
+void APP_Tasks(void) {
+    arducam_capture(s_img_buf);
+    display_img(s_img_buf, sizeof(s_img_buf));
+    asm("nop");
+}
 
-/******************************************************************************
-  Function:
-    void APP_Tasks ( void )
+__attribute__((format(printf, 1, 2))) _Noreturn void
+APP_panic(const char *format, ...) {
+    va_list args;
 
-  Remarks:
-    See prototype in app.h.
- */
-
-void APP_Tasks ( void )
-{
-
-    /* Check the application's current state. */
-    switch ( appData.state )
-    {
-        /* Application's initial state. */
-        case APP_STATE_INIT:
-        {
-            bool appInitialized = true;
-
-
-            if (appInitialized)
-            {
-
-                appData.state = APP_STATE_SERVICE_TASKS;
-            }
-            break;
-        }
-
-        case APP_STATE_SERVICE_TASKS:
-        {
-
-            break;
-        }
-
-        /* TODO: implement your application state machine.*/
-
-
-        /* The default state should never be executed. */
-        default:
-        {
-            /* TODO: Handle error in application's state machine. */
-            break;
-        }
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    // TODO: if needed, fflush(stdout) before going into infinite loop
+    while (1) {
+        asm("nop");
     }
 }
 
+/**
+ * Truly low-res display: print an ASCII char per pixel, skip odd rows
+ * in crude attempt to preserve aspect ratio.
+ */
+static void display_img(const uint8_t *buf, size_t n_bytes) {
+  for (int row = 0; row < IMG_HEIGHT; row++) {
+    if (is_even(row)) {
+      for (int col = 0; col < IMG_WIDTH; col++) {
+        uint8_t pixel = buf[row*IMG_WIDTH + col];
+        puts(luminance_to_ascii(pixel));
+      }
+      putchar('\n');
+    }
+  }
+}
+
+/**
+ * Map lumunance 0..255 to five ASCII values: ' ', '░', '▒', '▓', '█'
+ */
+static const char *luminance_to_ascii(uint8_t pixel) {
+    const char *ch[] = {" ", "░", "▒", "▓", "█"};
+    return ch[pixel / 52];
+}
 
 /*******************************************************************************
  End of File

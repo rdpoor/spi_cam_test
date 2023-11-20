@@ -6,6 +6,11 @@
                    projectFiles="true">
       <logicalFolder name="config" displayName="config" projectFiles="true">
         <logicalFolder name="default" displayName="default" projectFiles="true">
+          <logicalFolder name="osal" displayName="osal" projectFiles="true">
+            <itemPath>../src/config/default/osal/osal_definitions.h</itemPath>
+            <itemPath>../src/config/default/osal/osal_impl_basic.h</itemPath>
+            <itemPath>../src/config/default/osal/osal.h</itemPath>
+          </logicalFolder>
           <logicalFolder name="peripheral" displayName="peripheral" projectFiles="true">
             <logicalFolder name="clk" displayName="clk" projectFiles="true">
               <itemPath>../src/config/default/peripheral/clk/plib_clk.h</itemPath>
@@ -25,6 +30,9 @@
                 <itemPath>../src/config/default/peripheral/spi/spi_master/plib_spi_master_common.h</itemPath>
               </logicalFolder>
             </logicalFolder>
+            <logicalFolder name="systick" displayName="systick" projectFiles="true">
+              <itemPath>../src/config/default/peripheral/systick/plib_systick.h</itemPath>
+            </logicalFolder>
             <logicalFolder name="twihs" displayName="twihs" projectFiles="true">
               <logicalFolder name="master" displayName="master" projectFiles="true">
                 <itemPath>../src/config/default/peripheral/twihs/master/plib_twihs_master_common.h</itemPath>
@@ -40,6 +48,21 @@
             <logicalFolder name="cache" displayName="cache" projectFiles="true">
               <itemPath>../src/config/default/system/cache/sys_cache.h</itemPath>
             </logicalFolder>
+            <logicalFolder name="debug" displayName="debug" projectFiles="true">
+              <itemPath>../src/config/default/system/debug/sys_debug.h</itemPath>
+            </logicalFolder>
+            <logicalFolder name="int" displayName="int" projectFiles="true">
+              <itemPath>../src/config/default/system/int/sys_int.h</itemPath>
+              <itemPath>../src/config/default/system/int/sys_int_mapping.h</itemPath>
+            </logicalFolder>
+            <logicalFolder name="time" displayName="time" projectFiles="true">
+              <itemPath>../src/config/default/system/time/src/sys_time_local.h</itemPath>
+              <itemPath>../src/config/default/system/time/sys_time.h</itemPath>
+              <itemPath>../src/config/default/system/time/sys_time_definitions.h</itemPath>
+            </logicalFolder>
+            <itemPath>../src/config/default/system/system_common.h</itemPath>
+            <itemPath>../src/config/default/system/system.h</itemPath>
+            <itemPath>../src/config/default/system/system_module.h</itemPath>
           </logicalFolder>
           <itemPath>../src/config/default/device.h</itemPath>
           <itemPath>../src/config/default/device_vectors.h</itemPath>
@@ -180,6 +203,7 @@
       </logicalFolder>
       <itemPath>../src/app.h</itemPath>
       <itemPath>../src/arducam.h</itemPath>
+      <itemPath>../src/bsp_arducam.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -213,6 +237,9 @@
                 <itemPath>../src/config/default/peripheral/spi/spi_master/plib_spi0_master.c</itemPath>
               </logicalFolder>
             </logicalFolder>
+            <logicalFolder name="systick" displayName="systick" projectFiles="true">
+              <itemPath>../src/config/default/peripheral/systick/plib_systick.c</itemPath>
+            </logicalFolder>
             <logicalFolder name="twihs" displayName="twihs" projectFiles="true">
               <logicalFolder name="master" displayName="master" projectFiles="true">
                 <itemPath>../src/config/default/peripheral/twihs/master/plib_twihs0_master.c</itemPath>
@@ -229,6 +256,12 @@
             <logicalFolder name="cache" displayName="cache" projectFiles="true">
               <itemPath>../src/config/default/system/cache/sys_cache.c</itemPath>
             </logicalFolder>
+            <logicalFolder name="int" displayName="int" projectFiles="true">
+              <itemPath>../src/config/default/system/int/src/sys_int.c</itemPath>
+            </logicalFolder>
+            <logicalFolder name="time" displayName="time" projectFiles="true">
+              <itemPath>../src/config/default/system/time/src/sys_time.c</itemPath>
+            </logicalFolder>
           </logicalFolder>
           <itemPath>../src/config/default/exceptions.c</itemPath>
           <itemPath>../src/config/default/startup_xc32.c</itemPath>
@@ -242,6 +275,7 @@
       <itemPath>../src/main.c</itemPath>
       <itemPath>../src/app.c</itemPath>
       <itemPath>../src/arducam.c</itemPath>
+      <itemPath>../src/bsp_arducam.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -261,7 +295,7 @@
         <targetDevice>ATSAMV71Q21B</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool></platformTool>
+        <platformTool>EdbgTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>4.30</languageToolchainVersion>
         <platform>3</platform>

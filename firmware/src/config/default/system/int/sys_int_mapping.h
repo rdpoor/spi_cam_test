@@ -1,22 +1,23 @@
 /*******************************************************************************
-  SPI PLIB
+  Interrupt System Service Mapping File
 
   Company:
     Microchip Technology Inc.
 
   File Name:
-    plib_spi0_master.h
+    sys_int_mapping.h
 
   Summary:
-    SPI0 Master PLIB Header File
+    Interrupt System Service mapping file.
 
   Description:
-    This file has prototype of all the interfaces provided for particular
-    SPI peripheral.
-
+    This header file contains the mapping of the APIs defined in the API header
+    to either the function implementations or macro implementation or the
+    specific variant implementation.
 *******************************************************************************/
 
-/*******************************************************************************
+//DOM-IGNORE-BEGIN
+/******************************************************************************
 * Copyright (C) 2018 Microchip Technology Inc. and its subsidiaries.
 *
 * Subject to your compliance with these terms, you may use Microchip software
@@ -38,45 +39,26 @@
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *******************************************************************************/
+//DOM-IGNORE-END
 
-#ifndef PLIB_SPI0_MASTER_H
-#define PLIB_SPI0_MASTER_H
+#ifndef SYS_INT_MAPPING_H
+#define SYS_INT_MAPPING_H
 
-#include "device.h"
-#include "plib_spi_master_common.h"
+// *****************************************************************************
+// *****************************************************************************
+// Section: Interrupt System Service Mapping
+// *****************************************************************************
+// *****************************************************************************
 
-/* Provide C++ Compatibility */
-#ifdef __cplusplus
+/* MISRA C-2012 Rule 5.8 deviated:6 Deviation record ID -  H3_MISRAC_2012_R_5_8_DR_1 */
 
-    extern "C" {
+#define SYS_INT_IsEnabled()                 ( __get_PRIMASK() == 0 )
+#define SYS_INT_SourceEnable( source )      NVIC_EnableIRQ( source )
+#define SYS_INT_SourceIsEnabled( source )   NVIC_GetEnableIRQ( source )
+#define SYS_INT_SourceStatusGet( source )   NVIC_GetPendingIRQ( source )
+#define SYS_INT_SourceStatusSet( source )   NVIC_SetPendingIRQ( source )
+#define SYS_INT_SourceStatusClear( source ) NVIC_ClearPendingIRQ( source )
 
-#endif
+/* MISRAC 2012 deviation block end */
 
-/****************************** SPI0 Interface *********************************/
-
-void SPI0_Initialize( void );
-
-bool SPI0_WriteRead( void* pTransmitData, size_t txSize, void* pReceiveData, size_t rxSize );
-
-bool SPI0_Write( void* pTransmitData, size_t txSize );
-
-bool SPI0_Read( void* pReceiveData, size_t rxSize );
-
-bool SPI0_TransferSetup( SPI_TRANSFER_SETUP *setup, uint32_t spiSourceClock );
-
-bool SPI0_IsTransmitterBusy( void );
-
-
-
-/* Provide C++ Compatibility */
-#ifdef __cplusplus
-
-    }
-
-#endif
-
-#endif // PLIB_SPI0_MASTER_H
-
-/*******************************************************************************
- End of File
-*/
+#endif // SYS_INT_MAPPING_H

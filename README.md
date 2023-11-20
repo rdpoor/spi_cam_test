@@ -24,6 +24,7 @@ and this callback function:
 * https://www.arducam.com
 * https://github.com/ArduCAM
 * https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42408-SAMV71-Xplained-Ultra_User-Guide.pdf
+* https://www.uctronics.com/download/cam_module/OV2640DS.pdf
 
 Note: the following is for an ISI sensor and ATMEL Start, so it has limited
 relevance here:

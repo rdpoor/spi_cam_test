@@ -1,24 +1,21 @@
 /*******************************************************************************
-  System Configuration Header
+  TIME System Service Definitions Header File
+
+  Company:
+    Microchip Technology Inc.
 
   File Name:
-    configuration.h
+    sys_time_definitions.h
 
   Summary:
-    Build-time configuration header for the system defined by this project.
+    TIME System Service Definitions Header File
 
   Description:
-    An MPLAB Project may have multiple configurations.  This file defines the
-    build-time options for a single configuration.
-
-  Remarks:
-    This configuration header must not define any prototypes or data
-    definitions (or include any files that do).  It only provides macro
-    definitions for build-time configuration options
-
+    This file provides implementation-specific definitions for the TIME
+    system service's system interface.
 *******************************************************************************/
 
-// DOM-IGNORE-BEGIN
+//DOM-IGNORE-BEGIN
 /*******************************************************************************
 * Copyright (C) 2018 Microchip Technology Inc. and its subsidiaries.
 *
@@ -41,71 +38,74 @@
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *******************************************************************************/
-// DOM-IGNORE-END
+//DOM-IGNORE-END
 
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef SYS_TIME_DEFINITIONS_H
+#define SYS_TIME_DEFINITIONS_H
 
 // *****************************************************************************
 // *****************************************************************************
-// Section: Included Files
+// Section: File includes
 // *****************************************************************************
 // *****************************************************************************
-/*  This section Includes other configuration headers necessary to completely
-    define this configuration.
-*/
-
-#include "user.h"
-#include "device.h"
+#include "system/int/sys_int.h"
+#include "configuration.h"
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
 
-extern "C" {
+    extern "C" {
 
 #endif
 // DOM-IGNORE-END
 
 // *****************************************************************************
 // *****************************************************************************
-// Section: System Configuration
+// Section: Data Types
 // *****************************************************************************
 // *****************************************************************************
 
+// *****************************************************************************
+/* TIME PLIB API Set needed by the system service */
+
+typedef void (*SYS_TIME_PLIB_CALLBACK)(uint32_t data, uintptr_t context);
+typedef void (*SYS_TIME_PLIB_CALLBACK_REGISTER)(SYS_TIME_PLIB_CALLBACK callback, uintptr_t context);
+typedef uint32_t (*SYS_TIME_PLIB_FREQUENCY_GET)(void);
+typedef void (*SYS_TIME_PLIB_START)(void);
+typedef void (*SYS_TIME_PLIB_STOP)(void);
+
+typedef void (*SYS_TIME_PLIB_INTERRUPT_RESTORE)(bool status);
+typedef bool (*SYS_TIME_PLIB_INTERRUPT_DISABLE)(void);
+
+typedef void (*SYS_TIME_PLIB_PERIOD_SET)(uint32_t period);
+typedef void (*SYS_TIME_PLIB_COMPARE_SET) (uint32_t compare);
+typedef uint32_t (*SYS_TIME_PLIB_COUNTER_GET)(void);
+
+typedef struct
+{
+    SYS_TIME_PLIB_CALLBACK_REGISTER     timerCallbackSet;
+    SYS_TIME_PLIB_START                 timerStart;
+    SYS_TIME_PLIB_STOP                  timerStop;
+    SYS_TIME_PLIB_FREQUENCY_GET         timerFrequencyGet;
+    SYS_TIME_PLIB_PERIOD_SET            timerPeriodSet;
+    SYS_TIME_PLIB_INTERRUPT_RESTORE     timerInterruptRestore;
+    SYS_TIME_PLIB_INTERRUPT_DISABLE     timerInterruptDisable;
+} SYS_TIME_PLIB_INTERFACE;
 
 
 // *****************************************************************************
-// *****************************************************************************
-// Section: System Service Configuration
-// *****************************************************************************
-// *****************************************************************************
-/* TIME System Service Configuration Options */
-#define SYS_TIME_INDEX_0                            (0)
-#define SYS_TIME_MAX_TIMERS                         (5)
-#define SYS_TIME_HW_COUNTER_WIDTH                   (24)
-#define SYS_TIME_TICK_FREQ_IN_HZ                    (1000)
+/* TIME system service Initialization Data Declaration */
 
+struct SYS_TIME_INIT_
+{
+    /* Identifies the PLIB API set to be used by the system service to access
+     * the peripheral. */
+    const SYS_TIME_PLIB_INTERFACE*  timePlib;
 
+    /* Interrupt source ID for the TIMER interrupt. */
+    INT_SOURCE                      hwTimerIntNum;
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Driver Configuration
-// *****************************************************************************
-// *****************************************************************************
-
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: Middleware & Other Library Configuration
-// *****************************************************************************
-// *****************************************************************************
-
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Configuration
-// *****************************************************************************
-// *****************************************************************************
+};
 
 
 //DOM-IGNORE-BEGIN
@@ -114,7 +114,6 @@ extern "C" {
 #endif
 //DOM-IGNORE-END
 
-#endif // CONFIGURATION_H
-/*******************************************************************************
- End of File
-*/
+
+#endif // #ifndef SYS_TIME_DEFINITIONS_H
+

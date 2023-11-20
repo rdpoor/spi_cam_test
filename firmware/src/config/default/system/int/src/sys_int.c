@@ -1,20 +1,25 @@
 /*******************************************************************************
-  NVIC PLIB Implementation
+  Interrupt System Service Library Interface Implementation File
 
-  Company:
+  Company
     Microchip Technology Inc.
 
-  File Name:
-    plib_nvic.c
+  File Name
+    sys_int_nvic.c
 
-  Summary:
-    NVIC PLIB Source File
+  Summary
+    NVIC implementation of interrupt system service library.
 
-  Description:
-    None
+  Description
+    This file implements the interface to the interrupt system service library
+    not provided in CMSIS.
+
+  Remarks:
+    None.
 
 *******************************************************************************/
 
+// DOM-IGNORE-BEGIN
 /*******************************************************************************
 * Copyright (C) 2018 Microchip Technology Inc. and its subsidiaries.
 *
@@ -37,70 +42,61 @@
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *******************************************************************************/
-
-#include "device.h"
-#include "plib_nvic.h"
+// DOM-IGNORE-END
 
 
 // *****************************************************************************
 // *****************************************************************************
-// Section: NVIC Implementation
+// Section: Included Files
+// *****************************************************************************
+// *****************************************************************************
+#include "system/int/sys_int.h"
+#include "peripheral/nvic/plib_nvic.h"
+
+
+// *****************************************************************************
+// *****************************************************************************
+// Section: Interface Implementation
 // *****************************************************************************
 // *****************************************************************************
 
-void NVIC_Initialize( void )
+// *****************************************************************************
+void SYS_INT_Enable( void )
 {
-    /* Priority 0 to 7 and no sub-priority. 0 is the highest priority */
-    NVIC_SetPriorityGrouping( 0x00 );
-
-    /* Enable NVIC Controller */
-    __DMB();
-    __enable_irq();
-
-    /* Enable the interrupt sources and configure the priorities as configured
-     * from within the "Interrupt Manager" of MHC. */
-    NVIC_SetPriority(TWIHS0_IRQn, 7);
-    NVIC_EnableIRQ(TWIHS0_IRQn);
-
-    /* Enable Usage fault */
-    SCB->SHCSR |= (SCB_SHCSR_USGFAULTENA_Msk);
-    /* Trap divide by zero */
-    SCB->CCR   |= SCB_CCR_DIV_0_TRP_Msk;
-
-    /* Enable Bus fault */
-    SCB->SHCSR |= (SCB_SHCSR_BUSFAULTENA_Msk);
-
-    /* Enable memory management fault */
-    SCB->SHCSR |= (SCB_SHCSR_MEMFAULTENA_Msk);
-
+    NVIC_INT_Enable();
 }
 
-void NVIC_INT_Enable( void )
+bool SYS_INT_Disable( void )
 {
-    __DMB();
-    __enable_irq();
+    return NVIC_INT_Disable();
 }
 
-bool NVIC_INT_Disable( void )
+void SYS_INT_Restore( bool state )
 {
-    bool processorStatus = (__get_PRIMASK() == 0U);
-
-    __disable_irq();
-    __DMB();
-
-    return processorStatus;
+    NVIC_INT_Restore(state);
 }
 
-void NVIC_INT_Restore( bool state )
+bool SYS_INT_SourceDisable( INT_SOURCE source )
 {
-    if( state == true )
-    {
-        __DMB();
-        __enable_irq();
+    bool processorStatus;
+    bool intSrcStatus;
+
+    processorStatus = SYS_INT_Disable();
+
+    intSrcStatus = (NVIC_GetEnableIRQ(source) != 0U);
+
+    NVIC_DisableIRQ( source );
+
+    SYS_INT_Restore( processorStatus );
+
+    /* return the source status */
+    return intSrcStatus;
+}
+
+void SYS_INT_SourceRestore( INT_SOURCE source, bool status )
+{
+    if( status ) {
+        SYS_INT_SourceEnable( source );
     }
-    else
-    {
-        __disable_irq();
-        __DMB();
-    }
+    return;
 }

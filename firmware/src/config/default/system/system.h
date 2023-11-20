@@ -1,21 +1,28 @@
 /*******************************************************************************
-  SPI PLIB
+  Driver Layer Interface Header
 
   Company:
     Microchip Technology Inc.
 
   File Name:
-    plib_spi0_master.h
+    driver.h
 
   Summary:
-    SPI0 Master PLIB Header File
+    Driver layer data types and definitions.
 
   Description:
-    This file has prototype of all the interfaces provided for particular
-    SPI peripheral.
+    This file defines the common macros and definitions for the driver layer
+    modules.
 
-*******************************************************************************/
+  Remarks:
+    The parent directory to the "system" directory should be added to the
+    compiler's search path for header files such that the following include
+    statement will successfully include this file.
 
+    #include "system/system.h"
+ *******************************************************************************/
+
+//DOM-IGNORE-BEGIN
 /*******************************************************************************
 * Copyright (C) 2018 Microchip Technology Inc. and its subsidiaries.
 *
@@ -37,46 +44,25 @@
 * FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
-*******************************************************************************/
+ *******************************************************************************/
+//DOM-IGNORE-END
 
-#ifndef PLIB_SPI0_MASTER_H
-#define PLIB_SPI0_MASTER_H
-
-#include "device.h"
-#include "plib_spi_master_common.h"
-
-/* Provide C++ Compatibility */
-#ifdef __cplusplus
-
-    extern "C" {
-
-#endif
-
-/****************************** SPI0 Interface *********************************/
-
-void SPI0_Initialize( void );
-
-bool SPI0_WriteRead( void* pTransmitData, size_t txSize, void* pReceiveData, size_t rxSize );
-
-bool SPI0_Write( void* pTransmitData, size_t txSize );
-
-bool SPI0_Read( void* pReceiveData, size_t rxSize );
-
-bool SPI0_TransferSetup( SPI_TRANSFER_SETUP *setup, uint32_t spiSourceClock );
-
-bool SPI0_IsTransmitterBusy( void );
+#ifndef SYSTEM_H
+#define SYSTEM_H
 
 
+// *****************************************************************************
+// *****************************************************************************
+// Section: Included Files
+// *****************************************************************************
+// *****************************************************************************
 
-/* Provide C++ Compatibility */
-#ifdef __cplusplus
+#include "system/system_common.h"
+#include "system/system_module.h"
 
-    }
 
-#endif
-
-#endif // PLIB_SPI0_MASTER_H
-
+#endif // SYSTEM_H
 /*******************************************************************************
  End of File
 */
+

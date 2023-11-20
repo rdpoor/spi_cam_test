@@ -75,6 +75,24 @@
 #define LED0__Get()               ((PIOA_REGS->PIO_PDSR >> 23) & 0x1)
 #define LED0__PIN                  PIO_PIN_PA23
 
+/*** Macros for SPI0_CS_ pin ***/
+#define SPI0_CS__Set()               (PIOD_REGS->PIO_SODR = (1<<27))
+#define SPI0_CS__Clear()             (PIOD_REGS->PIO_CODR = (1<<27))
+#define SPI0_CS__Toggle()            (PIOD_REGS->PIO_ODSR ^= (1<<27))
+#define SPI0_CS__OutputEnable()      (PIOD_REGS->PIO_OER = (1<<27))
+#define SPI0_CS__InputEnable()       (PIOD_REGS->PIO_ODR = (1<<27))
+#define SPI0_CS__Get()               ((PIOD_REGS->PIO_PDSR >> 27) & 0x1)
+#define SPI0_CS__PIN                  PIO_PIN_PD27
+
+/*** Macros for AKD_CS_ pin ***/
+#define AKD_CS__Set()               (PIOD_REGS->PIO_SODR = (1<<25))
+#define AKD_CS__Clear()             (PIOD_REGS->PIO_CODR = (1<<25))
+#define AKD_CS__Toggle()            (PIOD_REGS->PIO_ODSR ^= (1<<25))
+#define AKD_CS__OutputEnable()      (PIOD_REGS->PIO_OER = (1<<25))
+#define AKD_CS__InputEnable()       (PIOD_REGS->PIO_ODR = (1<<25))
+#define AKD_CS__Get()               ((PIOD_REGS->PIO_PDSR >> 25) & 0x1)
+#define AKD_CS__PIN                  PIO_PIN_PD25
+
 /*** Macros for SW0_ pin ***/
 #define SW0__Set()               (PIOA_REGS->PIO_SODR = (1<<9))
 #define SW0__Clear()             (PIOA_REGS->PIO_CODR = (1<<9))

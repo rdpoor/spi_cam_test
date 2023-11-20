@@ -36,11 +36,11 @@
 42,PA13,,Available,In,,,,,,,
 45,PA16,,Available,In,,,,,,,
 46,PA23,LED0_,GPIO,In,n/a,No,Disabled,No,No,Disabled,Low
-47,PD27,,SPI0_NPCS3,n/a,n/a,No,Disabled,No,No,Disabled,Low
+47,PD27,SPI0_CS_,GPIO,Out,High,No,Disabled,No,No,Disabled,Low
 48,PC7,,Available,In,,,,,,,
 49,PA15,,Available,In,,,,,,,
 51,PA14,,Available,In,,,,,,,
-52,PD25,,Available,In,,,,,,,
+52,PD25,AKD_CS_,GPIO,Out,High,No,Disabled,No,No,Disabled,Low
 53,PD26,,Available,In,,,,,,,
 54,PC6,,Available,In,,,,,,,
 55,PD24,,Available,In,,,,,,,
@@ -63,7 +63,7 @@
 74,PD17,,Available,In,,,,,,,
 75,PA9,SW0_,GPIO,In,n/a,No,Disabled,Yes,No,Disabled,Low
 76,PC28,,Available,In,,,,,,,
-77,PA4,,TWIHS0_TWCK0,n/a,n/a,No,Disabled,No,No,Disabled,Low
+77,PA4,,TWIHS0_TWCK0,n/a,n/a,No,Disabled,Yes,No,Disabled,Low
 78,PD16,,Available,In,,,,,,,
 79,PB6,,Available,In,,,,,,,
 82,PC8,,Available,In,,,,,,,
@@ -73,7 +73,7 @@
 88,PD13,,Available,In,,,,,,,
 89,PB7,,Available,In,,,,,,,
 90,PC10,,Available,In,,,,,,,
-91,PA3,,TWIHS0_TWD0,n/a,n/a,No,Disabled,No,No,Disabled,Low
+91,PA3,,TWIHS0_TWD0,n/a,n/a,No,Disabled,Yes,No,Disabled,Low
 92,PD12,,Available,In,,,,,,,
 93,PA2,,Available,In,,,,,,,
 94,PC11,,Available,In,,,,,,,
