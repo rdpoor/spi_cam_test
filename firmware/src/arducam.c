@@ -39,8 +39,6 @@
 // *****************************************************************************
 // Private types and definitions
 
-#define SPI_PORT (void *)0
-#define I2C_PORT (void *)0
 #define UART_ID (void *)0
 #define WRITE_BIT 0x80
 

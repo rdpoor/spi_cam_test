@@ -288,7 +288,6 @@
       <itemPath>../src/config/default/pin_configurations.csv</itemPath>
       <itemPath>../src/main.c</itemPath>
       <itemPath>../src/app.c</itemPath>
-      <itemPath>../src/arducam.c</itemPath>
       <itemPath>../src/bsp_arducam.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"

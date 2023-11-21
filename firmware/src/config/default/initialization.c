@@ -74,9 +74,6 @@
 /* I2C Client Objects Pool */
 static DRV_I2C_CLIENT_OBJ drvI2C0ClientObjPool[DRV_I2C_CLIENTS_NUMBER_IDX0];
 
-/* I2C Transfer Objects Pool */
-static DRV_I2C_TRANSFER_OBJ drvI2C0TransferObj[DRV_I2C_QUEUE_SIZE_IDX0];
-
 /* I2C PLib Interface Initialization */
 static const DRV_I2C_PLIB_INTERFACE drvI2C0PLibAPI = {
 
@@ -104,15 +101,6 @@ static const DRV_I2C_PLIB_INTERFACE drvI2C0PLibAPI = {
 };
 
 
-static const DRV_I2C_INTERRUPT_SOURCES drvI2C0InterruptSources =
-{
-    /* Peripheral has single interrupt vector */
-    .isSingleIntSrc                        = true,
-
-    /* Peripheral interrupt line */
-    .intSources.i2cInterrupt             = (int32_t)TWIHS0_IRQn,
-};
-
 /* I2C Driver Initialization Data */
 static const DRV_I2C_INIT drvI2C0InitData =
 {
@@ -124,15 +112,6 @@ static const DRV_I2C_INIT drvI2C0InitData =
 
     /* I2C Client Objects Pool */
     .clientObjPool = (uintptr_t)&drvI2C0ClientObjPool[0],
-
-    /* I2C TWI Queue Size */
-    .transferObjPoolSize = DRV_I2C_QUEUE_SIZE_IDX0,
-
-    /* I2C Transfer Objects */
-    .transferObjPool = (uintptr_t)&drvI2C0TransferObj[0],
-
-    /* I2C interrupt sources */
-    .interruptSources = &drvI2C0InterruptSources,
 
     /* I2C Clock Speed */
     .clockSpeed = DRV_I2C_CLOCK_SPEED_IDX0,

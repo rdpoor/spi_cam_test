@@ -95,7 +95,6 @@ extern "C" {
 /* I2C Driver Instance 0 Configuration Options */
 #define DRV_I2C_INDEX_0                       0
 #define DRV_I2C_CLIENTS_NUMBER_IDX0           1
-#define DRV_I2C_QUEUE_SIZE_IDX0               2
 #define DRV_I2C_CLOCK_SPEED_IDX0              400000
 
 /* I2C Driver Common Configuration Options */

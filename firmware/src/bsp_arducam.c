@@ -51,28 +51,33 @@ void bsp_arducam_init(void) {
     asm("nop");
 }
 
-void bsp_arducam_spi_cs_enable(void) {
-    SPI0_CS__Clear();
+// *****************************************************************************
+// SPI
+
+void bsp_arducam_spi_cs_enable(void) { SPI0_CS__Clear(); }
+
+void bsp_arducam_spi_cs_disable(void) { SPI0_CS__Set(); }
+
+bool bsp_arducam_spi_read_byte(uint8_t addr, uint8_t *val) {
+    return bsp_arducam_spi_xfer(&addr, 1, val, 1);
 }
 
-void bsp_arducam_spi_cs_disable(void) {
-    SPI0_CS__Set();
+bool bsp_arducam_spi_write_byte(uint8_t addr, uint8_t val) {
+    uint8_t txd[] = {addr, val};
+    return bsp_arducam_spi_xfer(txd, 2, NULL, 0);
 }
 
-// int bsp_arducam_spi_xfer(void *spi, const uint8_t *src, uint8_t *dst,
-//                          size_t len) {
-//     // TODO: check len argument
-//     return !SPI0_WriteRead(src, len, dst, len);
-// }
-
-int bsp_arducam_spi_read(void *spi, uint8_t repeated_tx_data, uint8_t *dst,
-                         size_t len) {
-    return !SPI0_WriteRead(NULL, 0, dst, len);
+bool bsp_arducam_spi_xfer(const uint8_t *src, size_t src_len, uint8_t *dst, size_t dst_len) {
+    bool ret;
+    // TODO: check len argument
+    bsp_arducam_spi_cs_enable();
+    ret = SPI0_WriteRead((uint8_t *)src, src_len, dst, dst_len);
+    bsp_arducam_spi_cs_disable();
+    return ret;
 }
 
-int bsp_arducam_spi_write(void *spi, const uint8_t *src, size_t len) {
-    return !SPI0_WriteRead((void *)src, len, NULL, 0);
-}
+// *****************************************************************************
+// I2C
 
 unsigned int bsp_arducam_i2c_init(void *i2c, unsigned int baudrate) {
     // already performed in config/default/initialization.c
@@ -80,17 +85,28 @@ unsigned int bsp_arducam_i2c_init(void *i2c, unsigned int baudrate) {
     return 0;
 }
 
-int bsp_arducam_i2c_write(void *i2c, uint8_t addr, const uint8_t *src,
-                          size_t len, bool nostop) {
-    // TODO: honor nostop?
-    return !TWIHS0_Write(addr, (uint8_t *)src, len);
+bool bsp_arducam_i2c_read_byte(const DRV_HANDLE handle, uint8_t addr,
+                               uint8_t *val) {
+    uint8_t rxd[4];
+    bool ret = DRV_I2C_ReadTransfer(handle, addr, rxd, sizeof(rxd));
+    *val = rxd[1];
+    return ret;
 }
 
-int bsp_arducam_i2c_read(void *i2c, uint8_t addr, uint8_t *dst, size_t len,
-                         bool nostop) {
-    // TODO: honor nostop?
-    return !TWIHS0_Read(addr, dst, len);
+bool bsp_arducam_i2c_write_byte(const DRV_HANDLE handle, uint8_t addr,
+                                uint8_t val) {
+    return DRV_I2C_WriteTransfer(handle, addr, &val, 1);
 }
+
+bool bsp_arducam_i2c_xfer(const DRV_HANDLE handle, uint16_t address,
+                          const uint8_t *src, const size_t src_len,
+                          uint8_t *dst, const size_t dst_len) {
+    return DRV_I2C_WriteReadTransfer(handle, address, (uint8_t *)src, src_len,
+                                     dst, dst_len);
+}
+
+// *****************************************************************************
+// Other
 
 void bsp_arducam_sleep_ms(int ms) {
     SYS_TIME_HANDLE timer = SYS_TIME_HANDLE_INVALID;

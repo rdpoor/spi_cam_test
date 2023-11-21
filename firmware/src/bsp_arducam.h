@@ -34,6 +34,7 @@
 // *****************************************************************************
 // Includes
 
+#include "definitions.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -56,22 +57,37 @@ void bsp_arducam_init(void);
 // int bsp_arducam_spi_xfer(void *spi, const uint8_t *src, uint8_t *dst,
 //                          size_t len);
 
+// *****************************************************************************
+// SPI
+
 void bsp_arducam_spi_cs_enable(void);
 
 void bsp_arducam_spi_cs_disable(void);
 
-int bsp_arducam_spi_read(void *spi, uint8_t repeated_tx_data, uint8_t *dst,
-                         size_t len);
+bool bsp_arducam_spi_read_byte(uint8_t addr, uint8_t *val);
 
-int bsp_arducam_spi_write(void *spi, const uint8_t *src, size_t len);
+bool bsp_arducam_spi_write_byte(uint8_t addr, uint8_t val);
+
+bool bsp_arducam_spi_xfer(const uint8_t *src, size_t src_len, uint8_t *dst,
+                          size_t dst_len);
+
+// *****************************************************************************
+// I2C
 
 unsigned int bsp_arducam_i2c_init(void *i2c, unsigned int baudrate);
 
-int bsp_arducam_i2c_write(void *i2c, uint8_t addr, const uint8_t *src,
-                          size_t len, bool nostop);
+bool bsp_arducam_i2c_read_byte(const DRV_HANDLE i2c_handle, uint8_t addr,
+                               uint8_t *val);
 
-int bsp_arducam_i2c_read(void *i2c, uint8_t addr, uint8_t *dst, size_t len,
-                         bool nostop);
+bool bsp_arducam_i2c_write_byte(const DRV_HANDLE i2c_handle, uint8_t addr,
+                                uint8_t val);
+
+bool bsp_arducam_i2c_xfer(const DRV_HANDLE handle, uint16_t address,
+                          const uint8_t *src, const size_t src_len,
+                          uint8_t *dst, const size_t dst_len);
+
+// *****************************************************************************
+// Other
 
 unsigned int bsp_arducam_uart_init(void *uart, unsigned int baudrate);
 

@@ -4286,7 +4286,7 @@
   &lt;drv_i2c dnOrder=&quot;0&quot; id=&quot;DRV_I2C_ASYNC_HEADER&quot;&gt;
     &lt;Attributes dnOrder=&quot;0&quot;&gt;
       &lt;Boolean dnOrder=&quot;0&quot; id=&quot;enabled&quot;&gt;
-        &lt;Value dnOrder=&quot;0&quot;&gt;true&lt;/Value&gt;
+        &lt;Value dnOrder=&quot;0&quot;&gt;false&lt;/Value&gt;
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
   &lt;/drv_i2c&gt;
@@ -4299,7 +4299,7 @@
   &lt;drv_i2c dnOrder=&quot;0&quot; id=&quot;DRV_I2C_ASYNC_SRC&quot;&gt;
     &lt;Attributes dnOrder=&quot;0&quot;&gt;
       &lt;Boolean dnOrder=&quot;0&quot; id=&quot;enabled&quot;&gt;
-        &lt;Value dnOrder=&quot;0&quot;&gt;true&lt;/Value&gt;
+        &lt;Value dnOrder=&quot;0&quot;&gt;false&lt;/Value&gt;
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
   &lt;/drv_i2c&gt;
@@ -4311,7 +4311,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;drv_i2c&gt;
   &lt;drv_i2c dnOrder=&quot;0&quot; id=&quot;DRV_I2C_MODE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;User dnOrder=&quot;0&quot; value=&quot;Asynchronous&quot;/&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;Synchronous&quot;/&gt;
     &lt;/Values&gt;
   &lt;/drv_i2c&gt;
 &lt;/drv_i2c&gt;
@@ -4323,7 +4323,7 @@
   &lt;drv_i2c dnOrder=&quot;0&quot; id=&quot;DRV_I2C_SYNC_HEADER&quot;&gt;
     &lt;Attributes dnOrder=&quot;0&quot;&gt;
       &lt;Boolean dnOrder=&quot;0&quot; id=&quot;enabled&quot;&gt;
-        &lt;Value dnOrder=&quot;0&quot;&gt;false&lt;/Value&gt;
+        &lt;Value dnOrder=&quot;0&quot;&gt;true&lt;/Value&gt;
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
   &lt;/drv_i2c&gt;
@@ -4336,7 +4336,7 @@
   &lt;drv_i2c dnOrder=&quot;0&quot; id=&quot;DRV_I2C_SYNC_SRC&quot;&gt;
     &lt;Attributes dnOrder=&quot;0&quot;&gt;
       &lt;Boolean dnOrder=&quot;0&quot; id=&quot;enabled&quot;&gt;
-        &lt;Value dnOrder=&quot;0&quot;&gt;false&lt;/Value&gt;
+        &lt;Value dnOrder=&quot;0&quot;&gt;true&lt;/Value&gt;
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
   &lt;/drv_i2c&gt;
@@ -6053,7 +6053,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\driver\i2c\drv_i2c_definitions.h</file>
-         <hash>308393d7dc25f042ea7443ac00d81cc8fafb0eec952207d88f64a0b48ea04bae</hash>
+         <hash>929077879a4fe3e202ecbe796f076fe88435ea327ec0d8c573de6df7151e8601</hash>
       </entry>
       <entry>
          <file>..\src\config\default\peripheral\pio\plib_pio.h</file>
@@ -6133,7 +6133,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\driver\i2c\src\drv_i2c_local.h</file>
-         <hash>efe3b598a6fc3492f7f448c0077edcce4378d2029b5a26d304e0293e0d4711f7</hash>
+         <hash>a5b8e0e4f5644b88470600c3e52e76f9492bfc52e65210d6f94d6b87374e9bce</hash>
       </entry>
       <entry>
          <file>..\src\packs\ATSAMV71Q21B_DFP\instance\i2sc1.h</file>
@@ -6237,7 +6237,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\driver\i2c\drv_i2c.h</file>
-         <hash>098d38bbc9c9d42befb9e601cfaf7f342ce8c670b788c961ef84df6db1ecbf82</hash>
+         <hash>a2e3e35a45be2dffd93f381c5eb7d50a9f2fd955aee73cdd3da3178c7c3cfed9</hash>
       </entry>
       <entry>
          <file>..\src\packs\ATSAMV71Q21B_DFP\instance\piob.h</file>
@@ -6341,7 +6341,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\initialization.c</file>
-         <hash>ae714a895d5144a2f51ff3384ed1872d91991ddceb34eb6288f168c880a7fb44</hash>
+         <hash>07c42890131ca17afd4835c3994c2a38b72008487c2b49f4dcf8fa4bfc01ddb6</hash>
       </entry>
       <entry>
          <file>..\src\packs\CMSIS\CMSIS\Core\Include\cmsis_compiler.h</file>
@@ -6473,7 +6473,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\driver\i2c\src\drv_i2c.c</file>
-         <hash>5d5aba18ec8e697a064a2eb4b862f0bb5ae34e68d88e71de23b5b1a9019e90c4</hash>
+         <hash>0f8d004b3a1546705accef2a57e1fe61e1ee03854d49b6060b0ca0e3c98edffe</hash>
       </entry>
       <entry>
          <file>..\src\packs\ATSAMV71Q21B_DFP\component\wdt.h</file>
@@ -6605,7 +6605,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\configuration.h</file>
-         <hash>33e87d99ea8b055f44049e29a3b517f6c04c9b5fb78d35d3b828b61d28522e6c</hash>
+         <hash>1b155ec9dc4a66c3c9e3a9f284858ab519bd6165eded732859c28a3acbb8c4c0</hash>
       </entry>
       <entry>
          <file>..\src\packs\ATSAMV71Q21B_DFP\instance\afec0.h</file>
