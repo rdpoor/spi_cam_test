@@ -1,105 +1,106 @@
-/**
- * @file bsp_arducam.h
- *
- * MIT License
- *
- * Copyright (c) 2023 R. Dunbar Poor
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+#ifndef __ARDUCAM_H
+#define __ARDUCAM_H
 
-/**
- * @brief platform-dependent interface to ARDUCAM OV2460-based video camera
- */
+/*spi pin source*/
+#define SPI_PORT spi0
+#define PIN_SCK  2
+#define PIN_MOSI 3
+#define PIN_MISO 4
+#define PIN_CS   5
 
-#ifndef _BSP_ARDUCAM_H_
-#define _BSP_ARDUCAM_H_
+/*i2c pin source */
+#define I2C_PORT i2c0
+#define PIN_SDA  8
+#define PIN_SCL  9
+#define WRITE_BIT 0x80
 
-// *****************************************************************************
-// Includes
+#define UART_ID uart0
+#define BAUD_RATE 921600
+#define DATA_BITS 8
+#define STOP_BITS 1
+#define PARITY    UART_PARITY_NONE
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
 
-#include "definitions.h"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-// =============================================================================
-// C++ compatibility
-
-#ifdef __cplusplus
-extern "C" {
+#ifndef _SENSOR_
+#define _SENSOR_
+    struct sensor_reg {
+        unsigned int reg;
+        unsigned int val;
+    };
 #endif
 
-// *****************************************************************************
-// Public types and definitions
+struct sensor_info{
+    uint8_t sensor_slave_address;
+    uint8_t address_size;
+    uint8_t data_size;
+    uint16_t sensor_id;
+};
+struct camera_operate{
+    uint8_t slave_address;
+    void (*systemInit)(void);
+    uint8_t (*busDetect) (void);
+    uint8_t (*cameraProbe) (void);
+    void  (*cameraInit) (void);
+    void (*setJpegSize)(uint8_t size);
+};
+#define res_160x120         0   //160x120
+#define res_176x144         1   //176x144
+#define res_320x240         2   //320x240
+#define res_352x288         3   //352x288
+#define res_640x480         4   //640x480
+#define res_800x600         5   //800x600
+#define res_1024x768        6   //1024x768
+#define res_1280x1024   7   //1280x1024
+#define res_1600x1200   8   //1600x1200
+#define ARDUCHIP_FIFO           0x04  //FIFO and I2C control
+#define FIFO_CLEAR_MASK         0x01
+#define FIFO_START_MASK         0x02
+#define FIFO_RDPTR_RST_MASK     0x10
+#define FIFO_WRPTR_RST_MASK     0x20
+#define ARDUCHIP_GPIO           0x06  //GPIO Write Register
+#define GPIO_RESET_MASK         0x01  //0 = Sensor reset,                           1 =  Sensor normal operation
+#define GPIO_PWDN_MASK          0x02  //0 = Sensor normal operation,    1 = Sensor standby
+#define GPIO_PWREN_MASK         0x04    //0 = Sensor LDO disable,           1 = sensor LDO enable
 
-// *****************************************************************************
-// Public declarations
+#define BURST_FIFO_READ         0x3C  //Burst FIFO read operation
+#define SINGLE_FIFO_READ        0x3D  //Single FIFO read operation
 
-void bsp_arducam_init(void);
+#define ARDUCHIP_REV            0x40  //ArduCHIP revision
+#define VER_LOW_MASK            0x3F
+#define VER_HIGH_MASK           0xC0
 
-// int bsp_arducam_spi_xfer(void *spi, const uint8_t *src, uint8_t *dst,
-//                          size_t len);
+#define ARDUCHIP_TRIG           0x41  //Trigger source
+#define VSYNC_MASK              0x01
+#define SHUTTER_MASK            0x02
+#define CAP_DONE_MASK           0x08
 
-// *****************************************************************************
-// SPI
+#define FIFO_SIZE1              0x42  //Camera write FIFO size[7:0] for burst to read
+#define FIFO_SIZE2              0x43  //Camera write FIFO size[15:8]
+#define FIFO_SIZE3              0x44  //Camera write FIFO size[18:16]
 
-void bsp_arducam_spi_cs_enable(void);
+extern uint8_t cameraCommand;
+extern struct camera_operate arducam;
+extern uint8_t slave_addr;
 
-void bsp_arducam_spi_cs_disable(void);
+/**
+ * @brief Perform an I2C read operation to fetch a single byte at the
+ * specified regID address.
+ */
+int rdSensorReg8_8(uint8_t regID, uint8_t* regDat );
 
-bool bsp_arducam_spi_read_byte(uint8_t addr, uint8_t *val);
+/**
+ * @brief Perform an I2C write operation to write a single byte at the
+ * specified regID address.
+ */
+int wrSensorReg8_8(uint8_t regID, uint8_t regDat );
 
-bool bsp_arducam_spi_write_byte(uint8_t addr, uint8_t val);
-
-bool bsp_arducam_spi_xfer(const uint8_t *src, size_t src_len, uint8_t *dst,
-                          size_t dst_len);
-
-// *****************************************************************************
-// I2C
-
-unsigned int bsp_arducam_i2c_init(void *i2c, unsigned int baudrate);
-
-bool bsp_arducam_i2c_read_byte(const DRV_HANDLE i2c_handle, uint8_t addr,
-                               uint8_t *val);
-
-bool bsp_arducam_i2c_write_byte(const DRV_HANDLE i2c_handle, uint8_t addr,
-                                uint8_t val);
-
-bool bsp_arducam_i2c_xfer(const DRV_HANDLE handle, uint16_t address,
-                          const uint8_t *src, const size_t src_len,
-                          uint8_t *dst, const size_t dst_len);
-
-// *****************************************************************************
-// Other
-
-unsigned int bsp_arducam_uart_init(void *uart, unsigned int baudrate);
-
-void bsp_arducam_uart_write(void *uart, const uint8_t *src, size_t len);
-
-void bsp_arducam_sleep_ms(int ms);
-
-// *****************************************************************************
-// End of file
-
-#ifdef __cplusplus
-}
+/**
+ * @brief Call wrSensorReg8_8 with regID:regDat pairs until a 0xff:0xff
+ * list terminator is seen.
+ */
+int wrSensorRegs8_8(const struct sensor_reg reglist[]);
+void write_reg(uint8_t address, uint8_t value);
+uint8_t read_reg(uint8_t address);
+void singleCapture(void);
 #endif
-
-#endif /* #ifndef _BSP_ARDUCAM_H_ */

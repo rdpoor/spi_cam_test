@@ -1,21 +1,23 @@
 /*******************************************************************************
- System Interrupts File
+  Ports System Service Mapping File
 
   Company:
     Microchip Technology Inc.
 
   File Name:
-    interrupt.h
+    sys_ports_mapping.h
 
   Summary:
-    Interrupt vectors mapping
+    Ports System Service mapping file.
 
   Description:
-    This file contains declarations of device vectors used by Harmony 3
- *******************************************************************************/
+    This header file contains the mapping of the APIs defined in the API header
+    to either the function implementations or macro implementation or the
+    specific variant implementation.
+*******************************************************************************/
 
-// DOM-IGNORE-BEGIN
-/*******************************************************************************
+//DOM-IGNORE-BEGIN
+/******************************************************************************
 * Copyright (C) 2018 Microchip Technology Inc. and its subsidiaries.
 *
 * Subject to your compliance with these terms, you may use Microchip software
@@ -36,38 +38,65 @@
 * FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
- *******************************************************************************/
-// DOM-IGNORE-END
+*******************************************************************************/
+//DOM-IGNORE-END
 
-#ifndef INTERRUPTS_H
-#define INTERRUPTS_H
-
-// *****************************************************************************
-// *****************************************************************************
-// Section: Included Files
-// *****************************************************************************
-// *****************************************************************************
-#include <stdint.h>
+#ifndef SYS_PORTS_MAPPING_H
+#define SYS_PORTS_MAPPING_H
 
 
+
+#include "peripheral/pio/plib_pio.h"
 
 // *****************************************************************************
 // *****************************************************************************
-// Section: Handler Routines
+// Section: PORTS System Service Mapping
 // *****************************************************************************
 // *****************************************************************************
 
-void Reset_Handler (void);
-void NonMaskableInt_Handler (void);
-void HardFault_Handler (void);
-void MemoryManagement_Handler (void);
-void BusFault_Handler (void);
-void UsageFault_Handler (void);
-void DebugMonitor_Handler (void);
-void SysTick_Handler (void);
-void TWIHS0_InterruptHandler (void);
-void SPI0_InterruptHandler (void);
 
+static inline void SYS_PORT_PinWrite(SYS_PORT_PIN pin, bool value)
+{
+    PIO_PinWrite((PIO_PIN)pin, value);
+}
 
+static inline bool SYS_PORT_PinRead(SYS_PORT_PIN pin)
+{
+    return(PIO_PinRead((PIO_PIN)pin));
+}
 
-#endif // INTERRUPTS_H
+static inline bool SYS_PORT_PinLatchRead(SYS_PORT_PIN pin)
+{
+    return(PIO_PinLatchRead((PIO_PIN)pin));
+}
+
+static inline void SYS_PORT_PinToggle(SYS_PORT_PIN pin)
+{
+    PIO_PinToggle((PIO_PIN)pin);
+}
+
+static inline void SYS_PORT_PinSet(SYS_PORT_PIN pin)
+{
+    PIO_PinSet((PIO_PIN)pin);
+}
+
+static inline void SYS_PORT_PinClear(SYS_PORT_PIN pin)
+{
+    PIO_PinClear((PIO_PIN)pin);
+}
+
+static inline void SYS_PORT_PinInputEnable(SYS_PORT_PIN pin)
+{
+    PIO_PinInputEnable((PIO_PIN)pin);
+}
+
+static inline void SYS_PORT_PinOutputEnable(SYS_PORT_PIN pin)
+{
+    PIO_PinOutputEnable((PIO_PIN)pin);
+}
+
+#endif // SYS_PORTS_MAPPING_H
+
+/*******************************************************************************
+ End of File
+*/

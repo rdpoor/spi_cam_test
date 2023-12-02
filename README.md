@@ -23,6 +23,7 @@ and this callback function:
 
 * https://www.arducam.com
 * https://github.com/ArduCAM
+* https://github.com/ArduCAM/Arduino
 * https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42408-SAMV71-Xplained-Ultra_User-Guide.pdf
 * https://www.uctronics.com/download/cam_module/OV2640DS.pdf
 
@@ -36,16 +37,16 @@ relevance here:
 For the prototype, we use Dupont jumper wires between the ov2650 breakout board
 and EXT.2 on the SAMV71 XULT board.
 
-| SIGNAL     | ArduCam | XULT EXT2 | V71 Port| SAMV71 I/O | color |
-| -----------| --------| --------- | ------- | ---------- | ----- |
-| SPI.CS_    | 1       | EXT2.15   | PD27    | SPI0_NPCS3 | VIO   |
-| SPI.MOSI   | 2       | EXT2.16   | PD21    | SPI0_MOSI  | BLU   |
-| SPI.MISO   | 3       | EXT2.17   | PD20    | SPI0_MISO  | GRN   |
-| SPI.SCLK   | 4       | EXT2.18   | PD22    | SPI0_SPCK  | YEL   |
-| GND        | 5       | EXT2.19   | GND     | GND        | BLK   |
-| V3P3       | 6       | EXT2.20   | VCC     | VCC        | RED   |
-| SDA        | 7       | EXT2.11   | PA03    | TWCK1      | ORA   |
-| SCL        | 8       | EXT2.12   | PA04    | TWCK0      | BRN   |
+| SIGNAL     | ArduCam | XULT EXT2 | V71 Port| SAMV71 I/O | color | J506 |SPI|
+| -----------| --------| --------- | ------- | ---------- | ----- | ---- |---|
+| SPI.CS_    | 1       | EXT2.15   | PD27    | SPI0_NPCS3 | VIO   | -na- |   |
+| SPI.MOSI   | 2       | EXT2.16   | PD21    | SPI0_MOSI  | BLU   |J506.4|YEL|
+| SPI.MISO   | 3       | EXT2.17   | PD20    | SPI0_MISO  | GRN   |J506.1|BRN|
+| SPI.SCLK   | 4       | EXT2.18   | PD22    | SPI0_SPCK  | YEL   |J506.3|ORA|
+| GND        | 5       | EXT2.19   | GND     | GND        | BLK   |J506.6|BLK|
+| V3P3       | 6       | EXT2.20   | VCC     | VCC        | RED   | -na- |   |
+| I2C.SDA    | 7       | EXT2.11   | PA03    | TWCK1      | ORA   | -na- |   |
+| I2C.SCL    | 8       | EXT2.12   | PA04    | TWCK0      | BRN   | -na- |   |
 
 ## Extra Credit
 
