@@ -222,7 +222,6 @@
       <itemPath>../src/app.h</itemPath>
       <itemPath>../src/bsp_arducam.h</itemPath>
       <itemPath>../src/app_ov2640_sensor.h</itemPath>
-      <itemPath>../src/ov2640_regs.h</itemPath>
       <itemPath>../src/app_ardu_cam.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
@@ -533,6 +532,8 @@
         <property key="memories.programmemory" value="true"/>
         <property key="memories.programmemory.ranges" value="400000-5fffff"/>
         <property key="poweroptions.powerenable" value="false"/>
+        <property key="programmerToGoFilePath"
+                  value="C:/Users/r/Projects/BrainChip/git/spi_cam_test/firmware/spi_cam_test.X/debug/default/spi_cam_test_ptg"/>
         <property key="programoptions.eraseb4program" value="true"/>
         <property key="programoptions.preservedataflash" value="false"/>
         <property key="programoptions.preservedataflash.ranges"
