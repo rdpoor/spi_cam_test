@@ -490,17 +490,17 @@ void APP_OV2640_SENSOR_Tasks(void) {
     } break;
 
     case APP_OV2640_SENSOR_STATE_CHECK_SENSOR_TYPE: {
+        // Issue tI2C commands to read the VID and PID of the camera and confirm
+        // that it is compatible.
         uint8_t vid = 0x55;
         uint8_t pid = 0xaa;
 
         if (appData.retry_count++ > MAX_RETRY_COUNT) {
-            // too many retries
             printf("too many retries\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
         if (!APP_OV2640_SENSOR_Write_Reg(OV2640_DEV_CTRL_REG, 0x01)) {
-            // could not write DEV_CTRL_REG
             printf("could not write OV2640_DEV_CTRL_REG\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
@@ -527,13 +527,15 @@ void APP_OV2640_SENSOR_Tasks(void) {
             appData.state = APP_OV2640_SENSOR_STATE_RETRY_WAIT;
             break;
         }
+        // success...
         printf("Verified OV2640 vid:pid = 0x%02x:0x%02x\r\n", vid, pid);
         appData.state = APP_OV2640_SENSOR_STATE_WRITE_CTRL_REG_COM7;
         break;
     };
 
     case APP_OV2640_SENSOR_STATE_RETRY_WAIT: {
-        // Wait here before retrying APP_OV2640_SENSOR_STATE_CHECK_SENSOR_TYPE
+        // An attempt at reading the VID or PID failed.  Pause briefly before
+        // trying again.
         await_holdoff(APP_OV2640_SENSOR_STATE_CHECK_SENSOR_TYPE);
     } break;
 

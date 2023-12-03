@@ -22,6 +22,7 @@
  *******************************************************************************/
 
 #include "app.h"
+#include "app_ardu_cam.h"
 #include "app_ov2640_sensor.h"
 #include "definitions.h"
 #include <stdarg.h>
@@ -49,15 +50,17 @@ void APP_Initialize(void) {
            "\n# ArduCam OV2460 Test v%s\r\n",
            APP_VERSION);
     APP_OV2640_SENSOR_Initialize();
+    APP_ARDU_CAM_Initialize();
 }
 
 void APP_Tasks(void) {
     if (APP_OV2640_SENSOR_Task_Failed()) {
-        APP_panic("initialization failed\r\n");
-    } else if (APP_OV2640_SENSOR_Task_IsInitialized()) {
-        APP_panic("initialization succeeded\r\n");
+        APP_panic("I2C task failed\r\n");
+    } else if (APP_ARDU_CAM_Task_Failed()) {
+        APP_panic("SPI task failed\r\n");
     } else {
         APP_OV2640_SENSOR_Tasks();
+        APP_ARDU_CAM_Tasks();
     }
 }
 

@@ -1,686 +1,411 @@
-/*******************************************************************************
-  MPLAB Harmony Application Source File
-
-  Company:
-    Microchip Technology Inc.
-
-  File Name:
-    app_ardu_cam.c
-
-  Summary:
-    This file contains the source code for the ArduCAM Camera module which uses
-    SPI interface to send commands and receive the data from the Camera FIFO.
-
-  Description:
-    This file contains the source code for the MPLAB Harmony application.  It
-    implements the logic of the application's to send commands to ArduCAM Slave
-    module and receive the data from the Camera FIFO. This use SPI interface to
-    communicate with the slave device.
- *******************************************************************************/
-
-//DOM-IGNORE-BEGIN
-/*******************************************************************************
-* Copyright (C) 2021 Microchip Technology Inc. and its subsidiaries.
-*
-* Subject to your compliance with these terms, you may use Microchip software
-* and any derivatives exclusively with Microchip products. It is your
-* responsibility to comply with third party license terms applicable to your
-* use of third party software (including open source software) that may
-* accompany Microchip software.
-*
-* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
-* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
-* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
-* PARTICULAR PURPOSE.
-*
-* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
-* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
-* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
-* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
-* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
-* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
-* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
-*******************************************************************************/
-//DOM-IGNORE-END
+/**
+ * @file app_ardu_cam.c
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 BrainChip, Inc
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 
 // *****************************************************************************
-// *****************************************************************************
-// Section: Included Files
-// *****************************************************************************
-// *****************************************************************************
+// Includes
 
 #include "app_ardu_cam.h"
-#include "app_pir_sensor.h"
-#include "bsp/bsp.h"
+
+#include "app_ov2640_sensor.h"
+#include "configuration.h"
+#include "driver/spi/drv_spi.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 // *****************************************************************************
-// *****************************************************************************
-// Section: Global Data Definitions
-// *****************************************************************************
-// *****************************************************************************
-/* Application data buffer */
-volatile uint8_t buf[BUF_SIZE];
-volatile uint32_t fifo_length   = 0;
+// Private types and definitions
 
-uint8_t temp                    = 0;
-uint8_t temp_last               = 0;
-uint8_t temp_third_byte         = 0;
-uint32_t length                 = 0;
-int32_t i                       = 0;
-uint8_t file_count              = 0;
+// MSB in byte 0 signifies a write operation
+#define ARDUCHIP_WRITE_OP 0x80
 
-bool is_header                  = false;
+#define ARDUCAM_CMD_WRITE 0x01
+#define ARDUCAM_CMD_READ 0x00
+#define ARDUCAM_CMD_RDSR 0x05
+#define ARDUCAM_CMD_WREN 0x06
+#define ARDUCAM_STATUS_BUSY_BIT 0x01
 
-char fileNameArray[MAX_FILE_NAME_LEN];
-char jpegFileName[JPEG_FILE_NAME];
+#define APP_ARDUCAM_SPI_CLK_SPEED 1000000
 
-// OV2640 sensor ready. This is defined in app_ov2640_sensor.c file
-extern OSAL_SEM_DECLARE(ov2640Ready);
+#define APP_ARDUCAM_READ_WRITE_RATE_MS 1000
 
-// PIR Sensor motion detected. This is defined in app_pir_sensor.c file
-extern OSAL_SEM_DECLARE(motionDetected);
+#define ARDUCAM_NUM_BYTES_RD_WR 16
 
-extern APP_PIR_SENSOR_DATA app_pir_sensorData;
+#define APP_ARDUCAM_READ_REG_SIZE 4
+#define APP_ARDUCAM_WRITE_REG_SIZE 2
 
-// *****************************************************************************
-/* Application Data
+#define OV2640_MAX_FIFO_SIZE 0x5FFFF // 384KByte
+#define BUF_SIZE 4096
 
-  Summary:
-    Holds application data
+#define ARDUCHIP_TEST1 0x00 // TEST register
+#define ARDUCHIP_MODE 0x02  // Mode register
+#define MCU2LCD_MODE 0x00
+#define CAM2LCD_MODE 0x01
+#define LCD2MCU_MODE 0x02
 
-  Description:
-    This structure holds the application's data.
+#define ARDUCHIP_TRIG 0x41 // Trigger source
+#define VSYNC_MASK 0x01
+#define SHUTTER_MASK 0x02
+#define CAP_DONE_MASK 0x08
 
-  Remarks:
-    This structure should be initialized by the APP_ARDU_CAM_Initialize function.
+#define ARDUCHIP_FIFO 0x04 // FIFO and I2C control
+#define FIFO_CLEAR_MASK 0x01
+#define FIFO_START_MASK 0x02
+#define FIFO_RDPTR_RST_MASK 0x10
+#define FIFO_WRPTR_RST_MASK 0x20
 
-    Application strings and buffers are be defined outside this structure.
-*/
+#define BURST_FIFO_READ 0x3C  // Burst FIFO read operation
+#define SINGLE_FIFO_READ 0x3D // Single FIFO read operation
 
-APP_ARDU_CAM_DATA app_ardu_camData;
+#define FIFO_SIZE1 0x42 // Camera write FIFO size[7:0] for burst to read
+#define FIFO_SIZE2 0x43 // Camera write FIFO size[15:8]
+#define FIFO_SIZE3 0x44 // Camera write FIFO size[18:16]
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Callback Functions
-// *****************************************************************************
-// *****************************************************************************
-
-static void APP_SysFSEventHandler(SYS_FS_EVENT event,void* eventData,uintptr_t context)
+typedef enum
 {
-    switch(event)
-    {
-        /* If the event is mount then check if SDCARD media has been mounted */
-        case SYS_FS_EVENT_MOUNT:
-            if(strcmp((const char *)eventData, SDCARD_MOUNT_NAME) == 0)
-            {
-                app_ardu_camData.sdCardMountFlag = true;
-            }
-            break;
+    APP_ARDU_CAM_STATE_INIT,
+    APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT,
+    APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE,
+    APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO,
+    APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG,
+    APP_ARDU_CAM_STATE_START_CAPTURE,
+    APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE,
+    APP_ARDU_CAM_STATE_DUMP_IMAGE,
+    APP_ARDU_CAM_STATE_ERROR,
+} APP_ARDU_CAM_STATES;
 
-        /* If the event is unmount then check if SDCARD media has been unmount */
-        case SYS_FS_EVENT_UNMOUNT:
-            if(strcmp((const char *)eventData, SDCARD_MOUNT_NAME) == 0)
-            {
-                app_ardu_camData.sdCardMountFlag = false;
 
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_MOUNT_WAIT;
-            }
-            break;
-        case SYS_FS_EVENT_MOUNT_WITH_NO_FILESYSTEM:
-        case SYS_FS_EVENT_ERROR:
-            break;
-    }
-}
-
-const char* APP_ARDU_CAM_Get_Image_Name(void)
+typedef struct
 {
-    return (jpegFileName);
-}
+    APP_ARDU_CAM_STATES state;
+    DRV_SPI_TRANSFER_SETUP spiSetup;
+    DRV_HANDLE spiHandle;
+    bool spi_is_ready;
+    uint8_t readReg[APP_ARDUCAM_READ_REG_SIZE];
+    uint8_t writeReg[APP_ARDUCAM_WRITE_REG_SIZE];
+    uint32_t fifo_length;
+} APP_ARDU_CAM_DATA;
+
 // *****************************************************************************
-// *****************************************************************************
-// Section: Application Local Functions
-// *****************************************************************************
-// *****************************************************************************
+// Private (static, forward) declarations
 
-static void APP_SetRTCTime(void)
-{
-    struct tm sys_time = { 0 };
-
-    sys_time.tm_hour    = BUILD_TIME_HOUR;
-    sys_time.tm_min     = BUILD_TIME_MIN;
-    sys_time.tm_sec     = BUILD_TIME_SEC;
-
-    sys_time.tm_mday    = BUILD_DAY;
-    sys_time.tm_mon     = BUILD_MONTH;
-    sys_time.tm_year    = BUILD_YEAR - APP_TM_STRUCT_REFERENCE_YEAR;
-
-    /* Set RTC Time to current system time. */
-    RTC_RTCCTimeSet(&sys_time);
-}
-
-/* This function overrides the default WEAK implementation
- * of get_fatttime() from diskio.c to use RTC.
-
- * This will be called from FAT FS code to update the timestamp
- * of modified files.
+/**
+ * @brief Query camera controller for # of bytes in FIFO, store results in
+ * appData.fifo_length.  Return true on success, false on error.
  */
-uint32_t get_fattime(void)
-{
-    SYS_FS_TIME time    = { 0 };
+static bool get_fifo_length(void);
 
-    /* Get TimeStamp from RTC. */
-    RTC_RTCCTimeGet(&app_ardu_camData.rtcTime);
+/**
+ * @brief Read the camera FIFO (a byte at a time) and print on serial port.
+ */
+static bool dump_fifo(uint32_t n_bytes);
 
-    time.discreteTime.hour      = app_ardu_camData.rtcTime.tm_hour;
-    time.discreteTime.minute    = app_ardu_camData.rtcTime.tm_min;
-    time.discreteTime.second    = app_ardu_camData.rtcTime.tm_sec;
+// *****************************************************************************
+// Private (static) storage
 
-    time.discreteTime.day       = app_ardu_camData.rtcTime.tm_mday;
-    time.discreteTime.month     = app_ardu_camData.rtcTime.tm_mon;
+static APP_ARDU_CAM_DATA appData;
 
-    /* For FAT FS, Years are calculated with offset from 1980 */
-    time.discreteTime.year      = ((app_ardu_camData.rtcTime.tm_year + APP_TM_STRUCT_REFERENCE_YEAR) - APP_FAT_FS_REFERENCE_YEAR);
+// *****************************************************************************
+// Public code
 
-    return (time.packedTime);
+void APP_ARDU_CAM_Initialize(void) {
+    /* Place the App state machine in its initial state. */
+    appData.state = APP_ARDU_CAM_STATE_INIT;
+    appData.spi_is_ready = false;
+
+    /* Clear the SPI read and write buffers */
+    memset(appData.readReg, 0, sizeof(appData.readReg));
+    memset(appData.writeReg, 0, sizeof(appData.writeReg));
 }
 
-static void APP_ARDU_CAM_Read_Fifo_Length(void)
-{
-    uint32_t len1       = 0;
-    uint32_t len2       = 0;
-    uint32_t len3       = 0;
+void APP_ARDU_CAM_Tasks(void) {
+
+    // Dispatch on appData.state
+    switch (appData.state) {
+
+    /* Application's initial state. */
+    case APP_ARDU_CAM_STATE_INIT: {
+
+        appData.spiHandle =
+            DRV_SPI_Open(DRV_SPI_INDEX_0, DRV_IO_INTENT_READWRITE);
+
+        if (appData.spiHandle == DRV_HANDLE_INVALID) {
+            printf("Failed to open SPI interface\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
+        printf("Opened SPI channel\r\n");
+        appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
+        appData.spi_is_ready = true;
+    } break;
+
+    case APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT: {
+
+        // wait for I2C camera setup to complete
+        if (!APP_OV2640_SENSOR_Task_IsInitialized()) {
+            // remain in this state
+            appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
+            break;
+        }
+
+        // Write a byte to the ArduCAM to a test register and read it back to
+        // verify SPI operations are working.
+
+        // Register Address : 0x00 - Test Register
+        appData.writeReg[0] = ARDUCHIP_TEST1 | ARDUCHIP_WRITE_OP;
+        appData.writeReg[1] = 0x55;
+
+        if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
+                                      appData.readReg, 4)) {
+            printf("SPI Test Bit failed.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
+        if (appData.readReg[1] == 0x55) {
+            /* SPI interface OK. */
+            printf("probe succeeded: ");
+            appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE;
+            break;
+        } else {
+            /* Failed -- stay in this state to retry */
+            printf("probe pending: ");
+            appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
+            // TODO: holdoff for 100 mSec?
+        }
+        printf("%02x %02x %02x %02x\r\n", appData.readReg[0], appData.readReg[1], appData.readReg[2], appData.readReg[3]);
+    } break;
+
+    case APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE: {
+        // Change MCU mode
+        // set the bit[7] of the command phase to write
+        appData.writeReg[0] = ARDUCHIP_MODE | ARDUCHIP_WRITE_OP;
+        appData.writeReg[1] = 0x00;
+
+        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
+                                  sizeof(appData.writeReg))) {
+            printf("Unable to change camera mode\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+        printf("Changed camera mode\r\n");
+        appData.state = APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO;
+    } break;
+
+    case APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO: {
+        // one-time emptying of the fifo (subsequent captures empty
+        // it in the dump_image code)
+
+        if (APP_OV2640_SENSOR_Task_IsInitialized() == false) {
+            // camera not ready - remain in this state
+            appData.state = APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO;
+            break;
+        }
+
+        printf("About to send FIFO_CLEAR_MASK command...\r\n");
+        // Flush the FIFO to prepare for first capture
+        appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
+        appData.writeReg[1] = FIFO_CLEAR_MASK;
+
+        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
+                                  sizeof(appData.writeReg))) {
+            printf("failed to write clear fifo command\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
+        // fifo has been emptied
+        appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+    } break;
+
+    case APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG: {
+        // Here to clear the FIFO flag prior to capturing an image.
+        appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
+        appData.writeReg[1] = FIFO_CLEAR_MASK;
+
+        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
+                                  sizeof(appData.writeReg))) {
+            printf("failed to write clear fifo flag\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
+        // ready to start capture
+        appData.state = APP_ARDU_CAM_STATE_START_CAPTURE;
+    } break;
+
+    case APP_ARDU_CAM_STATE_START_CAPTURE: {
+        // Here to capture an image.
+        printf("APP_ARDU_CAM_Task: capturing image\r\n");
+
+        appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
+        appData.writeReg[1] = FIFO_START_MASK;
+
+        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
+                                  sizeof(appData.writeReg))) {
+            printf("APP_ARDU_CAM_Task: Start Capture failed.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
+        /* CAM Start Capture command completed */
+        printf("APP_ARDU_CAM_Task: Start Capture.\r\n");
+        appData.state = APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE;
+    } break;
+
+    case APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE: {
+        // Probe camera to see if capture has completed.
+        appData.writeReg[0] = ARDUCHIP_TRIG;
+        appData.writeReg[1] = 0x00;
+
+        if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
+                                      appData.readReg, 4)) {
+            printf("APP_ARDU_CAM_Task: Failed to read capture done.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
+        // is the Done bit set?
+        if (appData.readReg[1] & CAP_DONE_MASK) {
+            printf("APP_ARDU_CAM_Task: Capture Done...!\r\n");
+            appData.state = APP_ARDU_CAM_STATE_DUMP_IMAGE;
+            break;
+        }
+
+        // Done bit not set.  Remain in this state to repeatedly poll.
+        appData.state = APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE;
+    } break;
+
+    case APP_ARDU_CAM_STATE_DUMP_IMAGE: {
+        // Get the FIFO Length
+        if (!get_fifo_length()) {
+            printf("Could not get FIFO length\r\n");
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+        printf("appData.fifo_length = %ld\r\n", appData.fifo_length);
+
+        if (appData.fifo_length >= OV2640_MAX_FIFO_SIZE) {
+            printf("APP_ARDU_CAM_Task: FIFO is over Size.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+            break;
+        }
+
+        if (appData.fifo_length == 0) {
+            printf("APP_ARDU_CAM_Task: FIFO size is zero.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+            break;
+        }
+
+        // print contents of image as hex bytes
+        dump_fifo(appData.fifo_length);
+        // Prepare to capture another image
+        appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+    } break;
+
+    case APP_ARDU_CAM_STATE_ERROR: {
+        DRV_SPI_Close(appData.spiHandle);
+    } break;
+
+    } // switch
+}
+
+bool APP_ARDU_CAM_Task_SPIIsReady(void) { return appData.spi_is_ready; }
+
+bool APP_ARDU_CAM_Task_Failed(void) {
+    return appData.state == APP_ARDU_CAM_STATE_ERROR;
+}
+
+// *****************************************************************************
+// Private (static) code
+
+static bool get_fifo_length(void) {
+    uint32_t len1 = 0;
+    uint32_t len2 = 0;
+    uint32_t len3 = 0;
 
     /* Read data Camera write FIFO size[7:0] */
-    app_ardu_camData.writeReg[0] = FIFO_SIZE1;      // Address to read
-    app_ardu_camData.writeReg[1] = 0x00;            // Send a dummy byte
+    appData.writeReg[0] = FIFO_SIZE1; // Address to read
+    appData.writeReg[1] = 0x00;       // Send a dummy byte
 
-    if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 2, app_ardu_camData.readReg, 4) == true)
-    {
-        len1 = app_ardu_camData.readReg[1];
-
-        /* Read data Camera write FIFO size[15:8] */
-        app_ardu_camData.writeReg[0] = FIFO_SIZE2;      // Address to read
-        app_ardu_camData.writeReg[1] = 0x00;            // Send a dummy byte
-
-        if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 2, app_ardu_camData.readReg, 4) == true)
-        {
-            len2 = app_ardu_camData.readReg[1];
-
-            /* Read data Camera write FIFO size[18:16] */
-            app_ardu_camData.writeReg[0] = FIFO_SIZE3;      // Address to read
-            app_ardu_camData.writeReg[1] = 0x00;            // Send a dummy byte
-
-            if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 2, app_ardu_camData.readReg, 4) == true)
-            {
-                len3 = app_ardu_camData.readReg[1];
-                len3 = len3 & 0x7F;
-
-                // Calculate FIFO length
-                fifo_length = ((len3 << 16) | (len2 << 8) | len1) & 0x07FFFFF;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-                return;
-            }
-        }
-        else
-        {
-            app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            return;
-        }
+    if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
+                                  appData.readReg, 4)) {
+        return false;
     }
-    else
-    {
-        app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-    }
+    len1 = appData.readReg[1];
 
-    return;
+    /* Read data Camera write FIFO size[15:8] */
+    appData.writeReg[0] = FIFO_SIZE2; // Address to read
+    appData.writeReg[1] = 0x00;       // Send a dummy byte
+
+    if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
+                              appData.readReg, 4)) {
+        return false;
+    }
+    len2 = appData.readReg[1];
+
+    /* Read data Camera write FIFO size[18:16] */
+    // rdp: a mask of 0x7f suggests the field is 15 bits wide i.e. [22:16]?
+    appData.writeReg[0] = FIFO_SIZE3; // Address to read
+    appData.writeReg[1] = 0x00;       // Send a dummy byte
+
+    if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg,
+                                  2, appData.readReg, 4)) {
+        return false;
+    }
+    len3 = appData.readReg[1] & 0x7f;
+
+    // Calculate FIFO length
+    appData.fifo_length = ((len3 << 16) | (len2 << 8) | len1) & 0x07FFFFF;
+
+    return true;
 }
 
-static void APP_ARDU_CAM_Read_JpegHeader(void)
-{
-    app_ardu_camData.writeReg[0] = BURST_FIFO_READ; // Address to read
-    app_ardu_camData.writeReg[1] = 0x00;            // Send a dummy byte
+static bool dump_fifo(uint32_t n_bytes) {
+    while (n_bytes--) {
+        appData.writeReg[0] = BURST_FIFO_READ; // Address to read
+        appData.writeReg[1] = 0x00;            // Send a dummy byte
 
-    if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 2, app_ardu_camData.readReg, 4) == true)
-    {
-        temp_last       = app_ardu_camData.readReg[1];
-        temp            = app_ardu_camData.readReg[2];
-        temp_third_byte = app_ardu_camData.readReg[3];
-
-        // Detect JPEG header information
-        if ((temp == 0xD8) & (temp_last == 0xFF))
-        {
-            is_header = true;
-            buf[i++] = temp_last;
-            buf[i++] = temp;
-            buf[i++] = temp_third_byte;
+        if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 1,
+                                       appData.readReg, 2)) {
+            printf("APP_ARDU_CAM_Task: failed to read FIFO bytes\r\n");
+            return false;
         }
-
-        fifo_length = fifo_length - 3; // Read 3 bytes
-
-        /* Write data into a file. */
-        app_ardu_camData.state = APP_ARDU_CAM_STATE_SAVE_IMAGE;
-    }
-    else
-    {
-        app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-    }
-
-    return;
-}
-
-static void APP_ARDU_CAM_Write_ToFile(void)
-{
-    while (fifo_length--)
-    {
-        temp_last = temp;
-
-        app_ardu_camData.writeReg[0] = BURST_FIFO_READ; // Address to read
-        app_ardu_camData.writeReg[1] = 0x00;            // Send a dummy byte
-
-        if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 1, app_ardu_camData.readReg, 2) == true)
-        {
-            /* Write data into a file. */
-            temp =  app_ardu_camData.readReg[1];
-
-            // Read JPEG data from FIFO
-            if ( (temp == 0xD9) && (temp_last == 0xFF) ) //If find the end ,break while,
-            {
-                buf[i++] = temp;  //save the last  0XD9
-
-                if(SYS_FS_FileWrite(app_ardu_camData.fileHandle, (const void *)buf, i) == -1)
-                {
-                    /* Write was not successful. Close the file and error out.*/
-                    SYS_FS_FileClose(app_ardu_camData.fileHandle);
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-                }
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_CLOSE_FILE;
-                is_header = false;
-                i = 0;
-                break;
-            }
-            if (is_header == true)
-            {
-                //Write image data to buffer if not full
-                if (i < BUF_SIZE)
-                {
-                    buf[i++] = temp;
-                }
-                else
-                {
-                    //Write BUF_SIZE bytes image data to file
-                    if(SYS_FS_FileWrite(app_ardu_camData.fileHandle, (const void *)buf, BUF_SIZE) == -1)
-                    {
-                        /* Write was not successful. Close the file
-                         * and error out.*/
-                        SYS_FS_FileClose(app_ardu_camData.fileHandle);
-                        app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-                    }
-                    i = 0;
-                    buf[i++] = temp;
-                }
-            }
-
-        }
-        else
-        {
-            app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
+        printf("%02x ", appData.readReg[1]);  // print image byte
+        if (n_bytes % 16 == 0) {
+            printf("\r\n");
         }
     }
-    app_ardu_camData.state = APP_ARDU_CAM_STATE_CLOSE_FILE;
-    is_header = false;
-
-    return;
-}
-
-bool APP_ARDU_CAM_Task_GetStatus(void)
-{
-    return app_ardu_camData.arducamInit;
+    return true;
 }
 
 // *****************************************************************************
-// *****************************************************************************
-// Section: Application Initialization and State Machine Functions
-// *****************************************************************************
-// *****************************************************************************
-
-/*******************************************************************************
-  Function:
-    void APP_ARDU_CAM_Initialize ( void )
-
-  Remarks:
-    See prototype in app_ardu_cam.h.
- */
-
-void APP_ARDU_CAM_Initialize ( void )
-{
-    /* Place the App state machine in its initial state. */
-    app_ardu_camData.state          = APP_ARDU_CAM_STATE_MOUNT_WAIT;
-
-    /* Place the App state machine in its initial state. */
-    app_ardu_camData.status         = APP_ARDU_CAM_STATE_ERROR;
-    app_ardu_camData.arducamInit    = false;
-
-    /* Clear the read reg buffer */
-    memset(app_ardu_camData.readReg, 0, sizeof(app_ardu_camData.readReg));
-
-    /* Clear the write reg buffer */
-    memset(app_ardu_camData.writeReg, 0, sizeof(app_ardu_camData.writeReg));
-
-    /* Set RTC to current system time */
-    APP_SetRTCTime();
-
-    /* Register the File System Event handler */
-    SYS_FS_EventHandlerSet((void const*)APP_SysFSEventHandler,(uintptr_t)NULL);
-}
-
-/******************************************************************************
-  Function:
-    void APP_ARDU_CAM_Tasks ( void )
-
-  Remarks:
-    See prototype in app_ardu_cam.h.
- */
-
-void APP_ARDU_CAM_Tasks ( void )
-{
-    /* Check the application's current state. */
-    switch ( app_ardu_camData.state )
-    {
-        case APP_ARDU_CAM_STATE_MOUNT_WAIT:
-
-            /* Wait for SDCARD to be Auto Mounted */
-            if(app_ardu_camData.sdCardMountFlag == true)
-            {
-                SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: Init Success. SD Card Mounted.\r\n");
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_SET_CURRENT_DRIVE;
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_SET_CURRENT_DRIVE:
-
-            if(SYS_FS_CurrentDriveSet(SDCARD_MOUNT_NAME) == SYS_FS_RES_FAILURE)
-            {
-                /* Error while setting current drive */
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-                break;
-            }
-
-            if(SYS_FS_DirectoryMake(SDCARD_DIR_NAME) == SYS_FS_RES_FAILURE)
-            {
-                if (SYS_FS_Error() != SYS_FS_ERROR_EXIST)
-                {
-                    /* Error while setting current drive */
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-                    break;
-                }
-            }
-
-            if (app_ardu_camData.arducamInit == false)
-            {
-                /* Open a file for reading. */
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_INIT;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-            }
-            break;
-
-        /* Application's initial state. */
-        case APP_ARDU_CAM_STATE_INIT:
-
-            app_ardu_camData.spiSetup.baudRateInHz  = APP_ARDUCAM_SPI_CLK_SPEED;
-            app_ardu_camData.spiSetup.clockPhase    = DRV_SPI_CLOCK_PHASE_VALID_LEADING_EDGE;
-            app_ardu_camData.spiSetup.clockPolarity = DRV_SPI_CLOCK_POLARITY_IDLE_LOW;
-            app_ardu_camData.spiSetup.dataBits      = DRV_SPI_DATA_BITS_8;
-            app_ardu_camData.spiSetup.chipSelect    = (SYS_PORT_PIN)ARDUCAM_SLAVE_SS_PIN;
-            app_ardu_camData.spiSetup.csPolarity    = DRV_SPI_CS_POLARITY_ACTIVE_LOW;
-
-            app_ardu_camData.spiHandle = DRV_SPI_Open( DRV_SPI_INDEX_0, DRV_IO_INTENT_READWRITE );
-
-            if (app_ardu_camData.spiHandle != DRV_HANDLE_INVALID)
-            {
-                DRV_SPI_TransferSetup(app_ardu_camData.spiHandle, &app_ardu_camData.spiSetup);
-                app_ardu_camData.state          = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
-                app_ardu_camData.arducamInit    = true;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT:
-
-            /* Read data from ArduCAM */
-            /*
-             * The first bit[7] of the command phase is read/write byte,
-             * ?0? is for read and ?1? is for write, and the bit[6:0] is the
-             * address to be read or write in the data phase.
-             */
-            // Register Address : 0x00 - Test Register
-            app_ardu_camData.writeReg[0] = ARDUCHIP_TEST1 | 0x80; // set the bit[7] of the command phase to write
-            app_ardu_camData.writeReg[1] = 0x55;
-
-            if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 2, app_ardu_camData.readReg, 4) == true)
-            {
-                if (app_ardu_camData.readReg[1] == 0x55)
-                {
-                    /* SPI interface OK. */
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE;
-                }
-                else
-                {
-                    /* SPI interface Error! */
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
-
-                    // Delay of 1000ms
-                    vTaskDelay(1000 /portTICK_PERIOD_MS);
-                }
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-            break;
-
-        /* Change to MCU mode */
-        case APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE:
-
-            /* Change MCU mode */
-            app_ardu_camData.writeReg[0] = ARDUCHIP_MODE | 0x80; // set the bit[7] of the command phase to write
-            app_ardu_camData.writeReg[1] = 0x00;
-
-            if (DRV_SPI_WriteTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, sizeof (app_ardu_camData.writeReg)) == true)
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO:
-
-            if (APP_OV2640_SENSOR_Task_IsInitialized() == false)
-            {
-                /* Wait for the OV2640 Sensor to be ready */
-                OSAL_SEM_Pend( &ov2640Ready, OSAL_WAIT_FOREVER );
-            }
-
-            /* Flush the FIFO */
-            app_ardu_camData.writeReg[0] = ARDUCHIP_FIFO | 0x80; // set the bit[7] of the command phase to write
-            app_ardu_camData.writeReg[1] = FIFO_CLEAR_MASK;
-
-            if (DRV_SPI_WriteTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, sizeof (app_ardu_camData.writeReg)) == true)
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-
-            break;
-
-        case APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG:
-
-            /* Clear the FIFO */
-            app_ardu_camData.writeReg[0] = ARDUCHIP_FIFO | 0x80; // set the bit[7] of the command phase to write
-            app_ardu_camData.writeReg[1] = FIFO_CLEAR_MASK;
-
-            if (DRV_SPI_WriteTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, sizeof (app_ardu_camData.writeReg)) == true)
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_START_CAPTURE;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_START_CAPTURE:
-
-            /* Wait for motion detection */
-             OSAL_SEM_Pend( &motionDetected, OSAL_WAIT_FOREVER );
-
-            SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: Motion Detected...!\r\n");
-
-            /* Clear the FIFO */
-            app_ardu_camData.writeReg[0] = ARDUCHIP_FIFO | 0x80; // set the bit[7] of the command phase to write
-            app_ardu_camData.writeReg[1] = FIFO_START_MASK;
-
-            if (DRV_SPI_WriteTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, sizeof (app_ardu_camData.writeReg)) == true)
-            {
-                /* CAM Capture Done */
-                SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: Start Capture.\r\n");
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE;
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE:
-
-            /* Read whether capture is done..! */
-            app_ardu_camData.writeReg[0] = ARDUCHIP_TRIG;   // Address to read
-            app_ardu_camData.writeReg[1] = 0x00;            // Send a dummy byte
-
-            if (DRV_SPI_WriteReadTransfer(app_ardu_camData.spiHandle, app_ardu_camData.writeReg, 2, app_ardu_camData.readReg, 4) == true)
-            {
-                /* Check whether Capture done bit is set */
-                if (app_ardu_camData.readReg[1] & CAP_DONE_MASK)
-                {
-                    SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: Capture Done...!\r\n");
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_GET_FIFO_JPEG_HEADER;
-                    vTaskDelay(50 / portTICK_PERIOD_MS);
-                }
-                else
-                {
-                    /* SPI interface error */
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE;
-                }
-            }
-            else
-            {
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_GET_FIFO_JPEG_HEADER:
-
-            if (file_count >= MAX_FILE_NAMES)
-            {
-                file_count = 0;
-            }
-
-            // Generate unique filenames. Ex: IMAGE_0.JPG, IMAGE_1.JPG, ....
-            sprintf((char *)&fileNameArray[0], SDCARD_DIR_NAME"/IMAGE_%d.JPG", file_count );
-            // JPEG Filename to display on Webnet Server
-            sprintf((char *)&jpegFileName[0],"IMAGE_%d.JPG", file_count );
-
-            file_count++;
-
-            SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: Save image: ");
-            SYS_CONSOLE_MESSAGE(&fileNameArray[0]);
-            SYS_CONSOLE_MESSAGE("\r\n");
-
-            app_ardu_camData.fileHandle = SYS_FS_FileOpen((const char *) &fileNameArray[0], (SYS_FS_FILE_OPEN_WRITE));
-            if(app_ardu_camData.fileHandle == SYS_FS_HANDLE_INVALID)
-            {
-                /* Could not open the file. Error out*/
-                app_ardu_camData.state = APP_ARDU_CAM_STATE_ERROR;
-                break;
-            }
-
-            // Get the FIFO Length
-            APP_ARDU_CAM_Read_Fifo_Length();
-
-            if (app_ardu_camData.state != APP_ARDU_CAM_STATE_ERROR)
-            {
-                if (fifo_length >= OV2640_MAX_FIFO_SIZE)
-                {
-                    // Over Size
-                    SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: FIFO is over Size.\r\n");
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-                    break;
-                }
-                if (fifo_length == 0 )
-                {
-                    // Size is 0
-                    SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: FIFO size is zero.\r\n");
-                    app_ardu_camData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-                    break;
-                }
-
-                /* Read the JPEG Header information */
-                APP_ARDU_CAM_Read_JpegHeader();
-            }
-            break;
-
-        case APP_ARDU_CAM_STATE_SAVE_IMAGE:
-
-            // Write the captured JPEG image file to SD Card
-            APP_ARDU_CAM_Write_ToFile();
-            break;
-
-        case APP_ARDU_CAM_STATE_CLOSE_FILE:
-
-            /* Close both files */
-            SYS_FS_FileClose(app_ardu_camData.fileHandle);
-
-            /* Capture successful. Recapture if motion detects. */
-            app_ardu_camData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-            break;
-
-        case APP_ARDU_CAM_STATE_ERROR:
-
-            // APP_ARDU_CAM_Task error
-            SYS_CONSOLE_MESSAGE("APP_ARDU_CAM_Task: Error...!\r\n");
-
-            app_ardu_camData.status = APP_ARDU_CAM_STATE_ERROR;
-            DRV_SPI_Close(app_ardu_camData.spiHandle);
-            app_ardu_camData.arducamInit = false;
-
-            /* Allow other threads to run */
-            vTaskSuspend(NULL);
-
-        /* The default state should never be executed. */
-        default:
-        {
-            /* TODO: Handle error in application's state machine. */
-            break;
-        }
-    }
-}
-
-/*******************************************************************************
- End of File
- */
+// End of file
