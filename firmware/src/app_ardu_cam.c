@@ -32,12 +32,13 @@
 
 #include "app_ov2640_sensor.h"
 #include "configuration.h"
+#include "definitions.h"
 #include "driver/spi/drv_spi.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // *****************************************************************************
@@ -88,8 +89,9 @@
 #define FIFO_SIZE2 0x43 // Camera write FIFO size[15:8]
 #define FIFO_SIZE3 0x44 // Camera write FIFO size[18:16]
 
-typedef enum
-{
+#define SPI_HOLD_MS 1
+
+typedef enum {
     APP_ARDU_CAM_STATE_INIT,
     APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT,
     APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE,
@@ -101,9 +103,7 @@ typedef enum
     APP_ARDU_CAM_STATE_ERROR,
 } APP_ARDU_CAM_STATES;
 
-
-typedef struct
-{
+typedef struct {
     APP_ARDU_CAM_STATES state;
     DRV_SPI_TRANSFER_SETUP spiSetup;
     DRV_HANDLE spiHandle;
@@ -115,6 +115,12 @@ typedef struct
 
 // *****************************************************************************
 // Private (static, forward) declarations
+
+/**
+ * @brief Local version of DRV_SPI_WriteReadTransfer.  See comments there.
+ */
+static bool cam_spi_xfer(const DRV_HANDLE handle, void *pTransmitData,
+                         size_t txSize, void *pReceiveData, size_t rxSize);
 
 /**
  * @brief Query camera controller for # of bytes in FIFO, store results in
@@ -183,8 +189,8 @@ void APP_ARDU_CAM_Tasks(void) {
         appData.writeReg[0] = ARDUCHIP_TEST1 | ARDUCHIP_WRITE_OP;
         appData.writeReg[1] = 0x55;
 
-        if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
-                                      appData.readReg, 4)) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg, 2,
+                          appData.readReg, 4)) {
             printf("SPI Test Bit failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
@@ -201,7 +207,8 @@ void APP_ARDU_CAM_Tasks(void) {
             appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
             // TODO: holdoff for 100 mSec?
         }
-        printf("%02x %02x %02x %02x\r\n", appData.readReg[0], appData.readReg[1], appData.readReg[2], appData.readReg[3]);
+        printf("%02x %02x %02x %02x\r\n", appData.readReg[0],
+               appData.readReg[1], appData.readReg[2], appData.readReg[3]);
     } break;
 
     case APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE: {
@@ -210,8 +217,8 @@ void APP_ARDU_CAM_Tasks(void) {
         appData.writeReg[0] = ARDUCHIP_MODE | ARDUCHIP_WRITE_OP;
         appData.writeReg[1] = 0x00;
 
-        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
-                                  sizeof(appData.writeReg))) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg,
+                          sizeof(appData.writeReg), NULL, 0)) {
             printf("Unable to change camera mode\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
@@ -235,8 +242,8 @@ void APP_ARDU_CAM_Tasks(void) {
         appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
         appData.writeReg[1] = FIFO_CLEAR_MASK;
 
-        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
-                                  sizeof(appData.writeReg))) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg,
+                          sizeof(appData.writeReg), NULL, 0)) {
             printf("failed to write clear fifo command\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
@@ -251,8 +258,8 @@ void APP_ARDU_CAM_Tasks(void) {
         appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
         appData.writeReg[1] = FIFO_CLEAR_MASK;
 
-        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
-                                  sizeof(appData.writeReg))) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg,
+                          sizeof(appData.writeReg), NULL, 0)) {
             printf("failed to write clear fifo flag\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
@@ -269,8 +276,8 @@ void APP_ARDU_CAM_Tasks(void) {
         appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
         appData.writeReg[1] = FIFO_START_MASK;
 
-        if (!DRV_SPI_WriteTransfer(appData.spiHandle, appData.writeReg,
-                                  sizeof(appData.writeReg))) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg,
+                          sizeof(appData.writeReg), NULL, 0)) {
             printf("APP_ARDU_CAM_Task: Start Capture failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
@@ -286,8 +293,8 @@ void APP_ARDU_CAM_Tasks(void) {
         appData.writeReg[0] = ARDUCHIP_TRIG;
         appData.writeReg[1] = 0x00;
 
-        if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
-                                      appData.readReg, 4)) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg, 2,
+                          appData.readReg, 4)) {
             printf("APP_ARDU_CAM_Task: Failed to read capture done.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
@@ -347,6 +354,21 @@ bool APP_ARDU_CAM_Task_Failed(void) {
 // *****************************************************************************
 // Private (static) code
 
+static bool cam_spi_xfer(const DRV_HANDLE handle, void *pTransmitData,
+                         size_t txSize, void *pReceiveData, size_t rxSize) {
+    bool success = DRV_SPI_WriteReadTransfer(handle, pTransmitData, txSize,
+                                             pReceiveData, rxSize);
+    if (success) {
+        // There is unproven evidence that DRV_SPI_WriteReadTransfer returns
+        // before its interrupt code has completed, meaning that pReceiveData
+        // can be changed after DRV_SPI_WriteReadTransfer returns.  This delay
+        // tries to make sure that pReceieveData is properly updated before
+        // returning.
+        SYSTICK_DelayMs(SPI_HOLD_MS);
+    }
+    return success;
+}
+
 static bool get_fifo_length(void) {
     uint32_t len1 = 0;
     uint32_t len2 = 0;
@@ -356,8 +378,8 @@ static bool get_fifo_length(void) {
     appData.writeReg[0] = FIFO_SIZE1; // Address to read
     appData.writeReg[1] = 0x00;       // Send a dummy byte
 
-    if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
-                                  appData.readReg, 4)) {
+    if (!cam_spi_xfer(appData.spiHandle, appData.writeReg, 2, appData.readReg,
+                      4)) {
         return false;
     }
     len1 = appData.readReg[1];
@@ -366,8 +388,8 @@ static bool get_fifo_length(void) {
     appData.writeReg[0] = FIFO_SIZE2; // Address to read
     appData.writeReg[1] = 0x00;       // Send a dummy byte
 
-    if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 2,
-                              appData.readReg, 4)) {
+    if (!cam_spi_xfer(appData.spiHandle, appData.writeReg, 2, appData.readReg,
+                      4)) {
         return false;
     }
     len2 = appData.readReg[1];
@@ -377,8 +399,8 @@ static bool get_fifo_length(void) {
     appData.writeReg[0] = FIFO_SIZE3; // Address to read
     appData.writeReg[1] = 0x00;       // Send a dummy byte
 
-    if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg,
-                                  2, appData.readReg, 4)) {
+    if (!cam_spi_xfer(appData.spiHandle, appData.writeReg, 2, appData.readReg,
+                      4)) {
         return false;
     }
     len3 = appData.readReg[1] & 0x7f;
@@ -394,12 +416,12 @@ static bool dump_fifo(uint32_t n_bytes) {
         appData.writeReg[0] = BURST_FIFO_READ; // Address to read
         appData.writeReg[1] = 0x00;            // Send a dummy byte
 
-        if (!DRV_SPI_WriteReadTransfer(appData.spiHandle, appData.writeReg, 1,
-                                       appData.readReg, 2)) {
+        if (!cam_spi_xfer(appData.spiHandle, appData.writeReg, 1,
+                          appData.readReg, 2)) {
             printf("APP_ARDU_CAM_Task: failed to read FIFO bytes\r\n");
             return false;
         }
-        printf("%02x ", appData.readReg[1]);  // print image byte
+        printf("%02x ", appData.readReg[1]); // print image byte
         if (n_bytes % 16 == 0) {
             printf("\r\n");
         }
