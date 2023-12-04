@@ -89,7 +89,7 @@
 #define FIFO_SIZE2 0x43 // Camera write FIFO size[15:8]
 #define FIFO_SIZE3 0x44 // Camera write FIFO size[18:16]
 
-#define SPI_HOLD_MS 1
+#define SPI_HOLD_US 100
 
 typedef enum {
     APP_ARDU_CAM_STATE_INIT,
@@ -320,17 +320,17 @@ void APP_ARDU_CAM_Tasks(void) {
         }
         printf("appData.fifo_length = %ld\r\n", appData.fifo_length);
 
-        if (appData.fifo_length >= OV2640_MAX_FIFO_SIZE) {
-            printf("APP_ARDU_CAM_Task: FIFO is over Size.\r\n");
-            appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-            break;
-        }
+        // if (appData.fifo_length >= OV2640_MAX_FIFO_SIZE) {
+        //     printf("APP_ARDU_CAM_Task: FIFO is over Size.\r\n");
+        //     appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+        //     break;
+        // }
 
-        if (appData.fifo_length == 0) {
-            printf("APP_ARDU_CAM_Task: FIFO size is zero.\r\n");
-            appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-            break;
-        }
+        // if (appData.fifo_length == 0) {
+        //     printf("APP_ARDU_CAM_Task: FIFO size is zero.\r\n");
+        //     appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+        //     break;
+        // }
 
         // print contents of image as hex bytes
         dump_fifo(appData.fifo_length);
@@ -364,7 +364,7 @@ static bool cam_spi_xfer(const DRV_HANDLE handle, void *pTransmitData,
         // can be changed after DRV_SPI_WriteReadTransfer returns.  This delay
         // tries to make sure that pReceieveData is properly updated before
         // returning.
-        SYSTICK_DelayMs(SPI_HOLD_MS);
+        SYSTICK_DelayUs(SPI_HOLD_US);
     }
     return success;
 }
