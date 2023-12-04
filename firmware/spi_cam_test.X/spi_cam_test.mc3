@@ -2956,7 +2956,7 @@
         &lt;ElementPosition dnOrder=&quot;8&quot; id=&quot;stdio&quot; x=&quot;181&quot; y=&quot;223&quot;/&gt;
         &lt;ElementPosition dnOrder=&quot;9&quot; id=&quot;sys_time&quot; x=&quot;217&quot; y=&quot;106&quot;/&gt;
         &lt;ElementPosition dnOrder=&quot;10&quot; id=&quot;twihs0&quot; x=&quot;30&quot; y=&quot;282&quot;/&gt;
-        &lt;ElementPosition dnOrder=&quot;11&quot; id=&quot;usart1&quot; x=&quot;31&quot; y=&quot;209&quot;/&gt;
+        &lt;ElementPosition dnOrder=&quot;11&quot; id=&quot;usart1&quot; x=&quot;33&quot; y=&quot;209&quot;/&gt;
       &lt;/ElementPositions&gt;
     &lt;/ComponentGraph&gt;
   &lt;/UserData&gt;
@@ -6186,7 +6186,9 @@
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="usart1" name="BAUD_RATE"/>
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;usart1&gt;
   &lt;usart1 dnOrder=&quot;0&quot; id=&quot;BAUD_RATE&quot;&gt;
-    &lt;Values dnOrder=&quot;0&quot;/&gt;
+    &lt;Values dnOrder=&quot;0&quot;&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;460800&quot;/&gt;
+    &lt;/Values&gt;
   &lt;/usart1&gt;
 &lt;/usart1&gt;
 </value>
@@ -6196,7 +6198,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;usart1&gt;
   &lt;usart1 dnOrder=&quot;0&quot; id=&quot;BRG_VALUE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;usart1&quot; value=&quot;81&quot;/&gt;
+      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;usart1&quot; value=&quot;20&quot;/&gt;
     &lt;/Values&gt;
   &lt;/usart1&gt;
 &lt;/usart1&gt;
@@ -7028,7 +7030,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\peripheral\usart\plib_usart1.c</file>
-         <hash>dc710aeca05a02fa86803442170bba967315a1bd572454214f6b41302253d1cf</hash>
+         <hash>897f9189d09a2bff59d17497316f3b88c453723a1d86d29eaee8339fe43a1561</hash>
       </entry>
       <entry>
          <file>..\src\config\default\system\system_common.h</file>
@@ -7372,7 +7374,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\definitions.h</file>
-         <hash>35d0f39a07f663d12e978911119c5d24e64ad4176b20ca89f1208188f141152b</hash>
+         <hash>fb49ca1eb7dc54d0b6b4519c229ca593b4afe10d90d278f799a382c6553f7551</hash>
       </entry>
       <entry>
          <file>..\src\packs\ATSAMV71Q21B_DFP\component\qspi.h</file>
