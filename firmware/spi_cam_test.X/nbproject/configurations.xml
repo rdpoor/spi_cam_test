@@ -12,11 +12,6 @@
               <itemPath>../src/config/default/driver/i2c/drv_i2c_definitions.h</itemPath>
               <itemPath>../src/config/default/driver/i2c/src/drv_i2c_local.h</itemPath>
             </logicalFolder>
-            <logicalFolder name="spi" displayName="spi" projectFiles="true">
-              <itemPath>../src/config/default/driver/spi/drv_spi.h</itemPath>
-              <itemPath>../src/config/default/driver/spi/drv_spi_definitions.h</itemPath>
-              <itemPath>../src/config/default/driver/spi/src/drv_spi_local.h</itemPath>
-            </logicalFolder>
             <itemPath>../src/config/default/driver/driver.h</itemPath>
             <itemPath>../src/config/default/driver/driver_common.h</itemPath>
           </logicalFolder>
@@ -68,10 +63,6 @@
             <logicalFolder name="int" displayName="int" projectFiles="true">
               <itemPath>../src/config/default/system/int/sys_int.h</itemPath>
               <itemPath>../src/config/default/system/int/sys_int_mapping.h</itemPath>
-            </logicalFolder>
-            <logicalFolder name="ports" displayName="ports" projectFiles="true">
-              <itemPath>../src/config/default/system/ports/sys_ports_mapping.h</itemPath>
-              <itemPath>../src/config/default/system/ports/sys_ports.h</itemPath>
             </logicalFolder>
             <logicalFolder name="time" displayName="time" projectFiles="true">
               <itemPath>../src/config/default/system/time/src/sys_time_local.h</itemPath>
@@ -240,9 +231,6 @@
           <logicalFolder name="driver" displayName="driver" projectFiles="true">
             <logicalFolder name="i2c" displayName="i2c" projectFiles="true">
               <itemPath>../src/config/default/driver/i2c/src/drv_i2c.c</itemPath>
-            </logicalFolder>
-            <logicalFolder name="spi" displayName="spi" projectFiles="true">
-              <itemPath>../src/config/default/driver/spi/src/drv_spi.c</itemPath>
             </logicalFolder>
           </logicalFolder>
           <logicalFolder name="peripheral" displayName="peripheral" projectFiles="true">

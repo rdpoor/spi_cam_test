@@ -118,52 +118,6 @@ static const DRV_I2C_INIT drvI2C0InitData =
 };
 // </editor-fold>
 
-// <editor-fold defaultstate="collapsed" desc="DRV_SPI Instance 0 Initialization Data">
-
-/* SPI Client Objects Pool */
-static DRV_SPI_CLIENT_OBJ drvSPI0ClientObjPool[DRV_SPI_CLIENTS_NUMBER_IDX0];
-
-/* SPI PLIB Interface Initialization */
-static const DRV_SPI_PLIB_INTERFACE drvSPI0PlibAPI = {
-
-    /* SPI PLIB Setup */
-    .setup = (DRV_SPI_PLIB_SETUP)SPI0_TransferSetup,
-
-    /* SPI PLIB WriteRead function */
-    .writeRead = (DRV_SPI_PLIB_WRITE_READ)SPI0_WriteRead,
-
-    /* SPI PLIB Transfer Status function */
-    .isTransmitterBusy = (DRV_SPI_PLIB_TRANSMITTER_IS_BUSY)SPI0_IsTransmitterBusy,
-
-    /* SPI PLIB Callback Register */
-    .callbackRegister = (DRV_SPI_PLIB_CALLBACK_REGISTER)SPI0_CallbackRegister,
-};
-
-static const uint32_t drvSPI0remapDataBits[]= { 0x0, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0xFFFFFFFFU };
-static const uint32_t drvSPI0remapClockPolarity[] = { 0x0, 0x1 };
-static const uint32_t drvSPI0remapClockPhase[] = { 0x0, 0x2 };
-
-/* SPI Driver Initialization Data */
-static const DRV_SPI_INIT drvSPI0InitData =
-{
-    /* SPI PLIB API */
-    .spiPlib = &drvSPI0PlibAPI,
-
-    .remapDataBits = drvSPI0remapDataBits,
-
-    .remapClockPolarity = drvSPI0remapClockPolarity,
-
-    .remapClockPhase = drvSPI0remapClockPhase,
-
-    /* SPI Number of clients */
-    .numClients = DRV_SPI_CLIENTS_NUMBER_IDX0,
-
-    /* SPI Client Objects Pool */
-    .clientObjPool = (uintptr_t)&drvSPI0ClientObjPool[0],
-
-
-};
-// </editor-fold>
 
 
 
@@ -255,11 +209,11 @@ void SYS_Initialize ( void* data )
     /* MISRAC 2012 deviation block start */
     /* MISRA C-2012 Rule 2.2 deviated in this file.  Deviation record ID -  H3_MISRAC_2012_R_2_2_DR_1 */
 
-
-    EFC_Initialize();
     STDIO_BufferModeSet();
 
 
+
+    EFC_Initialize();
   
     CLOCK_Initialize();
 	PIO_Initialize();
@@ -286,9 +240,6 @@ void SYS_Initialize ( void* data )
 
     /* Initialize I2C0 Driver Instance */
     sysObj.drvI2C0 = DRV_I2C_Initialize(DRV_I2C_INDEX_0, (SYS_MODULE_INIT *)&drvI2C0InitData);
-
-    /* Initialize SPI0 Driver Instance */
-    sysObj.drvSPI0 = DRV_SPI_Initialize(DRV_SPI_INDEX_0, (SYS_MODULE_INIT *)&drvSPI0InitData);
 
 
     /* MISRA C-2012 Rule 11.3, 11.8 deviated below. Deviation record ID -  

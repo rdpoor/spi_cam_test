@@ -97,16 +97,9 @@ extern "C" {
 #define DRV_I2C_CLIENTS_NUMBER_IDX0           1
 #define DRV_I2C_CLOCK_SPEED_IDX0              400000
 
-/* SPI Driver Instance 0 Configuration Options */
-#define DRV_SPI_INDEX_0                       0
-#define DRV_SPI_CLIENTS_NUMBER_IDX0           1
-
 /* I2C Driver Common Configuration Options */
 #define DRV_I2C_INSTANCES_NUMBER              (1U)
 
-
-/* SPI Driver Common Configuration Options */
-#define DRV_SPI_INSTANCES_NUMBER              (1U)
 
 
 

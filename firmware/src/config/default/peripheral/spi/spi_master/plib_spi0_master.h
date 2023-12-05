@@ -67,10 +67,6 @@ bool SPI0_TransferSetup( SPI_TRANSFER_SETUP *setup, uint32_t spiSourceClock );
 bool SPI0_IsTransmitterBusy( void );
 
 
-bool SPI0_IsBusy( void );
-
-void SPI0_CallbackRegister( SPI_CALLBACK callback, uintptr_t context );
-
 
 /* Provide C++ Compatibility */
 #ifdef __cplusplus

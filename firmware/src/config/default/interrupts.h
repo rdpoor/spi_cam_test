@@ -66,7 +66,6 @@ void UsageFault_Handler (void);
 void DebugMonitor_Handler (void);
 void SysTick_Handler (void);
 void TWIHS0_InterruptHandler (void);
-void SPI0_InterruptHandler (void);
 
 
 

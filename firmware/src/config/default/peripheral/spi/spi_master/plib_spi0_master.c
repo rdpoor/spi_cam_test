@@ -58,9 +58,6 @@
 // *****************************************************************************
 // *****************************************************************************
 
-/* Global object to save SPI Exchange related data */
-volatile static SPI_OBJECT spi0Obj;
-
 void SPI0_Initialize( void )
 {
     /* Disable and Reset the SPI*/
@@ -77,120 +74,134 @@ void SPI0_Initialize( void )
     SPI0_REGS->SPI_CSR[3] = SPI_CSR_CPOL_IDLE_LOW | SPI_CSR_NCPHA_VALID_LEADING_EDGE | SPI_CSR_BITS_8_BIT | SPI_CSR_SCBR(150)| SPI_CSR_DLYBS(0) | SPI_CSR_DLYBCT(0)  | SPI_CSR_CSAAT(1) ;
 
 
-    /* Initialize global variables */
-    spi0Obj.transferIsBusy = false;
-    spi0Obj.callback = NULL;
 
     /* Enable SPI0 */
     SPI0_REGS->SPI_CR = SPI_CR_SPIEN_Msk;
 }
 
 
-
 bool SPI0_WriteRead( void* pTransmitData, size_t txSize, void* pReceiveData, size_t rxSize )
 {
-    bool isRequestAccepted = false;
-    uint32_t dummyData;
+    size_t txCount = 0;
+    size_t rxCount = 0;
+    size_t dummySize = 0;
+    size_t receivedData;
+    uint32_t dataBits;
+    bool isSuccess = false;
 
     /* Verify the request */
-    if((spi0Obj.transferIsBusy == false) && (((txSize > 0U) && (pTransmitData != NULL)) || ((rxSize > 0U) && (pReceiveData != NULL))))
+    if (((txSize > 0U) && (pTransmitData != NULL)) || ((rxSize > 0U) && (pReceiveData != NULL)))
     {
-        isRequestAccepted = true;
-        spi0Obj.txBuffer = pTransmitData;
-        spi0Obj.rxBuffer = pReceiveData;
-        spi0Obj.rxCount = 0;
-        spi0Obj.txCount = 0;
-        spi0Obj.dummySize = 0;
-
-        if (pTransmitData != NULL)
+        if (pTransmitData == NULL)
         {
-            spi0Obj.txSize = txSize;
+            txSize = 0;
         }
-        else
+        if (pReceiveData == NULL)
         {
-            spi0Obj.txSize = 0;
+            rxSize = 0;
         }
 
-        if (pReceiveData != NULL)
+        dataBits = SPI0_REGS->SPI_CSR[3] & SPI_CSR_BITS_Msk;
+
+        /* Flush out any unread data in SPI read buffer from the previous transfer */
+        receivedData = (SPI0_REGS->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;
+
+        if (rxSize > txSize)
         {
-            spi0Obj.rxSize = rxSize;
+            dummySize = rxSize - txSize;
         }
-        else
+        if (dataBits != SPI_CSR_BITS_8_BIT)
         {
-            spi0Obj.rxSize = 0;
-        }
-
-        spi0Obj.transferIsBusy = true;
-
-        /* Flush out any unread data in SPI read buffer */
-        dummyData = (SPI0_REGS->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;
-        (void)dummyData;
-
-        size_t txSz = spi0Obj.txSize;
-
-        if (spi0Obj.rxSize > txSz)
-        {
-            spi0Obj.dummySize = spi0Obj.rxSize - txSz;
+            rxSize >>= 1;
+            txSize >>= 1;
+            dummySize >>= 1;
         }
 
-        /* Start the first write here itself, rest will happen in ISR context */
-        if((SPI0_REGS->SPI_CSR[3] & SPI_CSR_BITS_Msk) == SPI_CSR_BITS_8_BIT)
+        /* Make sure TDR is empty */
+        while((bool)((SPI0_REGS->SPI_SR & SPI_SR_TDRE_Msk) >> SPI_SR_TDRE_Pos) == false)
         {
-            if (spi0Obj.txCount < txSz)
-            {
-                SPI0_REGS->SPI_TDR = *((uint8_t*)spi0Obj.txBuffer);
-                spi0Obj.txCount++;
-            }
-            else if (spi0Obj.dummySize > 0U)
-            {
-                SPI0_REGS->SPI_TDR = (uint8_t)(0xff);
-                spi0Obj.dummySize--;
-            }
-            else
-            {
                 /* Do Nothing */
-            }
         }
-        else
+
+        while ((txCount != txSize) || (dummySize != 0U))
         {
-            spi0Obj.txSize >>= 1;
-            spi0Obj.dummySize >>= 1;
-            spi0Obj.rxSize >>= 1;
-
-            txSz = spi0Obj.txSize;
-
-            if (spi0Obj.txCount < txSz)
+            if (txCount != txSize)
             {
-                SPI0_REGS->SPI_TDR = *((uint16_t*)spi0Obj.txBuffer);
-                spi0Obj.txCount++;
+                if(dataBits == SPI_CSR_BITS_8_BIT)
+                {
+                    SPI0_REGS->SPI_TDR = ((uint8_t*)pTransmitData)[txCount];
+                    txCount++;
+                }
+                else
+                {
+                    SPI0_REGS->SPI_TDR = ((uint16_t*)pTransmitData)[txCount];
+                    txCount++;
+                }
             }
-            else if (spi0Obj.dummySize > 0U)
+            else if (dummySize > 0U)
             {
-                SPI0_REGS->SPI_TDR = (uint16_t)(0xffff);
-                spi0Obj.dummySize--;
+                if(dataBits == SPI_CSR_BITS_8_BIT)
+                {
+                    SPI0_REGS->SPI_TDR = 0xff;
+                }
+                else
+                {
+                    SPI0_REGS->SPI_TDR = (uint16_t)(0xffff);
+                }
+                dummySize--;
             }
             else
             {
                 /* Do Nothing */
 
             }
+
+            if (rxSize == 0U)
+            {
+                /* For transmit only request, wait for TDR to become empty */
+                while((bool)((SPI0_REGS->SPI_SR & SPI_SR_TDRE_Msk) >> SPI_SR_TDRE_Pos) == false)
+                {
+                       /* Do Nothing */
+                }
+            }
+            else
+            {
+                /* If data is read, wait for the Receiver Data Register to become full*/
+                while((bool)((SPI0_REGS->SPI_SR & SPI_SR_RDRF_Msk) >> SPI_SR_RDRF_Pos) == false)
+                {
+                }
+
+                receivedData = (SPI0_REGS->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;
+
+                if (rxCount < rxSize)
+                {
+                    if(dataBits == SPI_CSR_BITS_8_BIT)
+                    {
+                        ((uint8_t*)pReceiveData)[rxCount] = (uint8_t)receivedData;
+                        rxCount++;
+                    }
+                    else
+                    {
+                        ((uint16_t*)pReceiveData)[rxCount] = (uint16_t)receivedData;
+                        rxCount++;
+                    }
+                }
+            }
         }
 
-        if (rxSize > 0U)
+        /* Make sure no data is pending in the shift register */
+        while ((bool)((SPI0_REGS->SPI_SR & SPI_SR_TXEMPTY_Msk) >> SPI_SR_TXEMPTY_Pos) == false)
         {
-            /* Enable receive interrupt to complete the transfer in ISR context */
-            SPI0_REGS->SPI_IER = SPI_IER_RDRF_Msk;
+                /* Do Nothing */
         }
-        else
-        {
-            /* Enable transmit interrupt to complete the transfer in ISR context */
-            SPI0_REGS->SPI_IER = SPI_IER_TDRE_Msk;
-        }
+
+        /* Set Last transfer to deassert NPCS after the last byte written in TDR has been transferred. */
+        SPI0_REGS->SPI_CR = SPI_CR_LASTXFER_Msk;
+
+        isSuccess = true;
     }
-
-    return isRequestAccepted;
+        return isSuccess;
 }
-
 
 bool SPI0_Write( void* pTransmitData, size_t txSize )
 {
@@ -242,154 +253,3 @@ bool SPI0_IsTransmitterBusy( void )
     return ((SPI0_REGS->SPI_SR & SPI_SR_TXEMPTY_Msk) == 0U)? true : false;
 }
 
-void SPI0_CallbackRegister( SPI_CALLBACK callback, uintptr_t context )
-{
-    spi0Obj.callback = callback;
-    spi0Obj.context = context;
-}
-
-bool SPI0_IsBusy( void )
-{
-    bool transferIsBusy = spi0Obj.transferIsBusy;
-
-    return (((SPI0_REGS->SPI_SR & SPI_SR_TXEMPTY_Msk) == 0U) || (transferIsBusy));
-}
-void __attribute__((used)) SPI0_InterruptHandler( void )
-{
-    uint32_t dataBits;
-    uint32_t receivedData;
-    static bool isLastByteTransferInProgress = false;
-
-    dataBits = SPI0_REGS->SPI_CSR[3] & SPI_CSR_BITS_Msk;
-
-
-    size_t rxCount = spi0Obj.rxCount;
-
-    if ((SPI0_REGS->SPI_SR & SPI_SR_RDRF_Msk ) == SPI_SR_RDRF_Msk)
-    {
-        receivedData = (SPI0_REGS->SPI_RDR & SPI_RDR_RD_Msk) >> SPI_RDR_RD_Pos;
-
-        if (rxCount < spi0Obj.rxSize)
-        {
-            if(dataBits == SPI_CSR_BITS_8_BIT)
-            {
-                ((uint8_t*)spi0Obj.rxBuffer)[rxCount] =(uint8_t)receivedData;
-                rxCount++;
-            }
-            else
-            {
-                ((uint16_t*)spi0Obj.rxBuffer)[rxCount] = (uint16_t)receivedData;
-                 rxCount++;
-            }
-        }
-
-        spi0Obj.rxCount = rxCount;
-    }
-
-    /* If there are more words to be transmitted, then transmit them here and keep track of the count */
-    if((SPI0_REGS->SPI_SR & SPI_SR_TDRE_Msk) == SPI_SR_TDRE_Msk)
-    {
-        /* Disable the TDRE interrupt. This will be enabled back if more than
-         * one byte is pending to be transmitted */
-        SPI0_REGS->SPI_IDR = SPI_IDR_TDRE_Msk;
-
-        size_t txCount = spi0Obj.txCount;
-
-        if(dataBits == SPI_CSR_BITS_8_BIT)
-        {
-            if (txCount < spi0Obj.txSize)
-            {
-                SPI0_REGS->SPI_TDR = ((uint8_t*)spi0Obj.txBuffer)[txCount];
-                txCount++;
-            }
-            else if (spi0Obj.dummySize > 0U)
-            {
-                SPI0_REGS->SPI_TDR = (uint8_t)(0xff);
-                spi0Obj.dummySize--;
-            }
-            else
-            {
-                /* Do Nothing */
-            }
-        }
-        else
-        {
-            if (txCount < spi0Obj.txSize)
-            {
-                SPI0_REGS->SPI_TDR = ((uint16_t*)spi0Obj.txBuffer)[txCount];
-                txCount++;
-            }
-            else if (spi0Obj.dummySize > 0U)
-            {
-                SPI0_REGS->SPI_TDR = (uint16_t)(0xffff);
-                spi0Obj.dummySize--;
-            }
-            else
-            {
-                /* Do Nothing */
-            }
-        }
-        size_t txSize = spi0Obj.txSize;
-
-        if ((spi0Obj.dummySize == 0U) && (txCount == txSize))
-        {
-            /* At higher baud rates, the data in the shift register can be
-             * shifted out and TXEMPTY flag can get set resulting in a
-             * callback been given to the application with the SPI interrupt
-             * pending with the application. This will then result in the
-             * interrupt handler being called again with nothing to transmit.
-             * To avoid this, a software flag is set, but
-             * the TXEMPTY interrupt is not enabled until the very end.
-             */
-
-            isLastByteTransferInProgress = true;
-
-        }
-        else if (rxCount == spi0Obj.rxSize)
-        {
-            /* Enable TDRE interrupt as all the requested bytes are received
-             * and can now make use of the internal transmit shift register.
-             */
-            SPI0_REGS->SPI_IDR = SPI_IDR_RDRF_Msk;
-            SPI0_REGS->SPI_IER = SPI_IDR_TDRE_Msk;
-        }
-        else
-        {
-            /* Do Nothing */
-        }
-
-        spi0Obj.txCount = txCount;
-    }
-
-    /* See if Exchange is complete */
-    if ((isLastByteTransferInProgress == true) && ((SPI0_REGS->SPI_SR & SPI_SR_TXEMPTY_Msk) == SPI_SR_TXEMPTY_Msk))
-    {
-        if (rxCount == spi0Obj.rxSize)
-        {
-            /* Set Last transfer to deassert NPCS after the last byte written in TDR has been transferred. */
-            SPI0_REGS->SPI_CR = SPI_CR_LASTXFER_Msk;
-
-            spi0Obj.transferIsBusy = false;
-
-            /* Disable TDRE, RDRF and TXEMPTY interrupts */
-            SPI0_REGS->SPI_IDR = SPI_IDR_TDRE_Msk | SPI_IDR_RDRF_Msk | SPI_IDR_TXEMPTY_Msk;
-
-            isLastByteTransferInProgress = false;
-
-            if(spi0Obj.callback != NULL)
-            {
-                uintptr_t context = spi0Obj.context;
-
-                spi0Obj.callback(context);
-            }
-        }
-    }
-    if (isLastByteTransferInProgress == true)
-    {
-        /* For the last byte transfer, the TDRE interrupt is already disabled.
-         * Enable TXEMPTY interrupt to ensure no data is present in the shift
-         * register before application callback is called.
-         */
-        SPI0_REGS->SPI_IER = SPI_IER_TXEMPTY_Msk;
-    }
-}
