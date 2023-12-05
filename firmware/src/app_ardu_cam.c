@@ -92,10 +92,9 @@
 
 typedef enum {
     APP_ARDU_CAM_STATE_INIT,
-    APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT,
+    APP_ARDU_CAM_STATE_PROBE_SPI,
     APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE,
-    APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO,
-    APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG,
+    APP_ARDU_CAM_STATE_RESET_FIFO,
     APP_ARDU_CAM_STATE_START_CAPTURE,
     APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE,
     APP_ARDU_CAM_STATE_DUMP_IMAGE,
@@ -115,27 +114,54 @@ typedef struct {
 
 static bool dump_fifo(uint32_t n_bytes);
 
-static void reset_fifo(void);
+__attribute__((unused))
+static bool reset_fifo(void);
 
-static void start_capture(void);
+__attribute__((unused))
+static bool start_capture(void);
 
+__attribute__((unused))
 static uint32_t read_fifo_length(void);
 
-static uint8_t spi_read_fifo(void);
+/**
+ * @brief Read a single byte from the FIFO.
+ */
+__attribute__((unused))
+static uint8_t spi_read_fifo_byte(void);
 
-static void spi_set_fifo_burst(void);
+/**
+ * @brief Configure the FIFO for burst mode.
+ */
+__attribute__((unused))
+static bool spi_set_fifo_burst(void);
 
-static void spi_set_bit(uint8_t addr, uint8_t bit);
+/**
+ * @brief Read bytes from the FIFO in burst mode.
+ *
+ * NOTE: Assumes the FIFO has been configured with spi_set_fifo_burst():
+ * this reads buflen bytes from the FIFO into buf.
+ */
+__attribute__((unused))
+static bool spi_read_fifo_bytes(uint8_t *buf, size_t buflen);
 
-static void clear_bit(uint8_t addr, uint8_t bit);
+__attribute__((unused))
+static bool spi_set_bit(uint8_t addr, uint8_t bit);
 
+__attribute__((unused))
+static bool spi_clear_bit(uint8_t addr, uint8_t bit);
+
+__attribute__((unused))
 static uint8_t spi_get_bit(uint8_t addr, uint8_t bit);
 
-static void spi_set_mode(uint8_t mode);
+/**
+ * @brief Set mode.  Mode is one of MCU2LCD_MODE, CAM2LCD_MODE, LCD2MCU_MODE
+ */
+__attribute__((unused))
+static bool spi_set_mode(uint8_t mode);
 
 static uint8_t spi_read_reg(uint8_t addr);
 
-static void spi_write_reg(uint8_t addr, uint8_t data);
+static bool spi_write_reg(uint8_t addr, uint8_t data);
 
 static bool cam_spi_xfer(void *tx_buf, size_t tx_size, void *rx_buf,
                          size_t rx_size);
@@ -165,134 +191,81 @@ void APP_ARDU_CAM_Tasks(void) {
 
     /* Application's initial state. */
     case APP_ARDU_CAM_STATE_INIT: {
-        appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
-        appData.spi_is_ready = true;
+        appData.state = APP_ARDU_CAM_STATE_PROBE_SPI;
     } break;
 
-    case APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT: {
+    case APP_ARDU_CAM_STATE_PROBE_SPI: {
 
         // wait for I2C camera setup to complete
         if (!APP_OV2640_SENSOR_Task_IsInitialized()) {
-            // remain in this state
-            appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
+            // camera not ready - remain in this state
+            appData.state = APP_ARDU_CAM_STATE_PROBE_SPI;
             break;
         }
 
         // Write a byte to the ArduCAM to a test register and read it back to
         // verify SPI operations are working.
-
-        // Register Address : 0x00 - Test Register
-        appData.writeReg[0] = ARDUCHIP_TEST1 | ARDUCHIP_WRITE_OP;
-        appData.writeReg[1] = 0x55;
-
-        if (!cam_spi_xfer(appData.writeReg, 2, appData.readReg, 4)) {
-            printf("SPI Test Bit failed.\r\n");
+        if (!spi_write_reg(ARDUCHIP_TEST1, 0x55)) {
+            printf("SPI probe failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
 
-        if (appData.readReg[1] == 0x55) {
-            /* SPI interface OK. */
-            printf("probe succeeded: ");
+        if (spi_read_reg(ARDUCHIP_TEST1) == 0x55) {
+            printf("SPI probe succeeded: ");
+            appData.spi_is_ready = true;
             appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE;
             break;
         } else {
-            /* Failed -- stay in this state to retry */
-            printf("probe pending: ");
-            appData.state = APP_ARDU_CAM_STATE_ARDUCHIP_TEST_BIT;
+            // failed: stay in this state to retry
+            printf("SPI probe pending: ");
+            appData.state = APP_ARDU_CAM_STATE_PROBE_SPI;
             // TODO: holdoff for 100 mSec?
         }
-        printf("%02x %02x %02x %02x\r\n", appData.readReg[0],
-               appData.readReg[1], appData.readReg[2], appData.readReg[3]);
     } break;
 
     case APP_ARDU_CAM_STATE_ARDUCHIP_CHANGE_MODE: {
         // Change MCU mode
         // set the bit[7] of the command phase to write
-        appData.writeReg[0] = ARDUCHIP_MODE | ARDUCHIP_WRITE_OP;
-        appData.writeReg[1] = 0x00;
-
-        if (!cam_spi_xfer(appData.writeReg, sizeof(appData.writeReg), NULL, 0)) {
+        if (!spi_set_mode(MCU2LCD_MODE)) {
             printf("Unable to change camera mode\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
         printf("Changed camera mode\r\n");
-        appData.state = APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO;
+        appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
     } break;
 
-    case APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO: {
-        // one-time emptying of the fifo (subsequent captures empty
-        // it in the dump_image code)
+    case APP_ARDU_CAM_STATE_RESET_FIFO: {
+        // Empty the FIFO prior to capturing an image
 
-        if (APP_OV2640_SENSOR_Task_IsInitialized() == false) {
-            // camera not ready - remain in this state
-            appData.state = APP_ARDU_CAM_STATE_OV2640_READY_FLUSH_FIFO;
-            break;
-        }
-
-        printf("About to send FIFO_CLEAR_MASK command...\r\n");
-        // Flush the FIFO to prepare for first capture
-        appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
-        appData.writeReg[1] = FIFO_CLEAR_MASK;
-
-        if (!cam_spi_xfer(appData.writeReg, sizeof(appData.writeReg), NULL, 0)) {
-            printf("failed to write clear fifo command\r\n");
+        if (!reset_fifo()) {
+            printf("failed to reset fifo\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
-
         // fifo has been emptied
-        appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-    } break;
-
-    case APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG: {
-        // Here to clear the FIFO flag prior to capturing an image.
-        appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
-        appData.writeReg[1] = FIFO_CLEAR_MASK;
-
-        if (!cam_spi_xfer(appData.writeReg, sizeof(appData.writeReg), NULL, 0)) {
-            printf("failed to write clear fifo flag\r\n");
-            appData.state = APP_ARDU_CAM_STATE_ERROR;
-            break;
-        }
-
-        // ready to start capture
         appData.state = APP_ARDU_CAM_STATE_START_CAPTURE;
     } break;
 
     case APP_ARDU_CAM_STATE_START_CAPTURE: {
         // Here to capture an image.
-        printf("APP_ARDU_CAM_Task: capturing image\r\n");
-
-        appData.writeReg[0] = ARDUCHIP_FIFO | ARDUCHIP_WRITE_OP;
-        appData.writeReg[1] = FIFO_START_MASK;
-
-        if (!cam_spi_xfer(appData.writeReg, sizeof(appData.writeReg), NULL, 0)) {
-            printf("APP_ARDU_CAM_Task: Start Capture failed.\r\n");
+        printf("Capturing image\r\n");
+        if (!spi_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK)) {
+            printf("Start Capture failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
 
         /* CAM Start Capture command completed */
-        printf("APP_ARDU_CAM_Task: Start Capture.\r\n");
+        printf("Start Capture.\r\n");
         appData.state = APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE;
     } break;
 
     case APP_ARDU_CAM_STATE_WAIT_FOR_FIFO_DONE: {
         // Probe camera to see if capture has completed.
-        appData.writeReg[0] = ARDUCHIP_TRIG;
-        appData.writeReg[1] = 0x00;
-
-        if (!cam_spi_xfer(appData.writeReg, 2, appData.readReg, 4)) {
-            printf("APP_ARDU_CAM_Task: Failed to read capture done.\r\n");
-            appData.state = APP_ARDU_CAM_STATE_ERROR;
-            break;
-        }
-
-        // is the Done bit set?
-        if (appData.readReg[1] & CAP_DONE_MASK) {
-            printf("APP_ARDU_CAM_Task: Capture Done...!\r\n");
+        if (spi_get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)) {
+            printf("Capture complete\r\n");
             appData.state = APP_ARDU_CAM_STATE_DUMP_IMAGE;
             break;
         }
@@ -303,29 +276,25 @@ void APP_ARDU_CAM_Tasks(void) {
 
     case APP_ARDU_CAM_STATE_DUMP_IMAGE: {
         // Get the FIFO Length
-        if (!get_fifo_length()) {
-            printf("Could not get FIFO length\r\n");
-            appData.state = APP_ARDU_CAM_STATE_ERROR;
+        uint32_t length = read_fifo_length();
+        printf("length = %ld\r\n", length);
+
+        if (length >= OV2640_MAX_FIFO_SIZE) {
+            printf("FIFO length is over size.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
             break;
         }
-        printf("appData.fifo_length = %ld\r\n", appData.fifo_length);
 
-        // if (appData.fifo_length >= OV2640_MAX_FIFO_SIZE) {
-        //     printf("APP_ARDU_CAM_Task: FIFO is over Size.\r\n");
-        //     appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-        //     break;
-        // }
-
-        // if (appData.fifo_length == 0) {
-        //     printf("APP_ARDU_CAM_Task: FIFO size is zero.\r\n");
-        //     appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
-        //     break;
-        // }
+        if (length == 0) {
+            printf("FIFO size is zero.\r\n");
+            appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
+            break;
+        }
 
         // print contents of image as hex bytes
-        dump_fifo(appData.fifo_length);
-        // Prepare to capture another image
-        appData.state = APP_ARDU_CAM_STATE_CLEAR_FIFO_FLAG;
+        dump_fifo(length);
+        // Loop back to capture another image
+        appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
     } break;
 
     case APP_ARDU_CAM_STATE_ERROR: {
@@ -361,12 +330,12 @@ static bool dump_fifo(uint32_t n_bytes) {
     return true;
 }
 
-static void reset_fifo(void) {
-    spi_write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_MASK);
+static bool reset_fifo(void) {
+    return spi_write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_MASK);
 }
 
-static void start_capture(void) {
-    spi_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK);
+static bool start_capture(void) {
+    return spi_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK);
 }
 
 static uint32_t read_fifo_length(void) {
@@ -378,29 +347,34 @@ static uint32_t read_fifo_length(void) {
     return length;
 }
 
-static uint8_t spi_read_fifo(void) {
+static uint8_t spi_read_fifo_byte(void) {
     return spi_read_reg(SINGLE_FIFO_READ);
 }
 
-static void spi_set_fifo_burst(void) {
+static bool spi_set_fifo_burst(void) {
     uint8_t tx_buf = BURST_FIFO_READ;
-    cam_spi_xfer(&tx_buf, sizeof(tx_buf), NULL, 0);
+    return cam_spi_xfer(&tx_buf, sizeof(tx_buf), NULL, 0);
 }
 
-static void spi_set_bit(uint8_t addr, uint8_t bit) {
-    spi_write_reg(addr, spi_read_reg(addr) | bit);
+static bool spi_read_fifo_bytes(uint8_t *buf, size_t buflen) {
+    // write (dummy) bytes from buf, read results into buf.
+    return cam_spi_xfer((void *)buf, buflen, (void *)buf, buflen);
 }
 
-static void clear_bit(uint8_t addr, uint8_t bit) {
-    spi_write_reg(addr, spi_read_reg(addr) & ~bit);
+static bool spi_set_bit(uint8_t addr, uint8_t bit) {
+    return spi_write_reg(addr, spi_read_reg(addr) | bit);
+}
+
+static bool spi_clear_bit(uint8_t addr, uint8_t bit) {
+    return spi_write_reg(addr, spi_read_reg(addr) & ~bit);
 }
 
 static uint8_t spi_get_bit(uint8_t addr, uint8_t bit) {
-    spi_read_reg(addr) & bit;
+    return spi_read_reg(addr) & bit;
 }
 
-static void spi_set_mode(uint8_t mode) {
-    spi_write_reg(ARDUCHIP_MODE, mode);
+static bool spi_set_mode(uint8_t mode) {
+    return spi_write_reg(ARDUCHIP_MODE, mode);
 }
 
 static uint8_t spi_read_reg(uint8_t addr) {
@@ -412,16 +386,18 @@ static uint8_t spi_read_reg(uint8_t addr) {
     return rx_buf[1];
 }
 
-static void spi_write_reg(uint8_t addr, uint8_t data) {
+static bool spi_write_reg(uint8_t addr, uint8_t data) {
     uint8_t tx_buf[2] = {addr | ARDUCHIP_WRITE_OP , data};
 
-    cam_spi_xfer(tx_buf, sizeof(tx_buf), NULL, 0);
+    return cam_spi_xfer(tx_buf, sizeof(tx_buf), NULL, 0);
 }
 
 static bool cam_spi_xfer(void *tx_buf, size_t tx_size, void *rx_buf,
                          size_t rx_size) {
+    while (SPI0_IsTransmitterBusy()) {
+        asm("nop");
+    }
     bool success = SPI0_WriteRead(tx_buf, tx_size, rx_buf, rx_size);
-    SYSTICK_DelayUs(100);
     return success;
 }
 
