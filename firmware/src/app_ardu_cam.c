@@ -315,14 +315,8 @@ bool APP_ARDU_CAM_Task_Failed(void) {
 
 static bool dump_fifo(uint32_t n_bytes) {
     while (n_bytes--) {
-        appData.writeReg[0] = BURST_FIFO_READ; // Address to read
-        appData.writeReg[1] = 0x00;            // Send a dummy byte
-
-        if (!cam_spi_xfer(appData.writeReg, 1, appData.readReg, 2)) {
-            printf("APP_ARDU_CAM_Task: failed to read FIFO bytes\r\n");
-            return false;
-        }
-        printf("%02x ", appData.readReg[1]); // print image byte
+        uint8_t byte = spi_read_fifo_byte();
+        printf("%02x ", byte); // print image byte
         if (n_bytes % 16 == 0) {
             printf("\r\n");
         }
