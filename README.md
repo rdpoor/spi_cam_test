@@ -112,3 +112,57 @@ Loop:
     * reset_fifo()
     * start_capture()
 
+
+### tflmicro:
+
+```
+init:
+    arducam.systemInit()    [image_provider.cpp]
+        => picoSystemInit()     [arducam.c]
+        // sets up GPIOs and peripherals.  (Handled in initialization.c)
+    arducam.busDetect()     [image_provider.cpp]
+        => spiBusDetect()       [arducam.c]
+        write SPI 0x55 to TEST1, verify readback.
+    arducam.cameraProbe()   [image_provider.cpp]
+        => ov2640Probe()        [arducam.c]
+        I2C read 0x0a, 0x0b, verify VID and PID
+    arducam.cameraInit(YUV) [image_provider.cpp]
+        => ov2640Init(YUV)      [arducam.c]
+        wrSensorReg8_8(OV2640_DEV_CTRL_REG, 0x01);
+        wrSensorReg8_8(OV2640_DEV_CTRL_REG_COM7, 0x80);
+        sleep_ms(100);
+        wrSensorRegs8_8(OV2640_YUV_96x96);  // ov2640.h
+        flush_fifo()
+        start_capture()
+
+loop:
+    GetImage                [image_provider.cpp]
+    => capture()              [arducam.c]
+        uint16_t i, count;
+        uint8_t value[96 * 96 * 2 + 8];
+        uint16_t index = 0;
+        while (!get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK));
+        int length = read_fifo_length();
+        // printf("the data length: %d\r\n",length);
+        cs_select();
+        set_fifo_burst(); //Set fifo burst mode
+        spi_read_blocking(SPI_PORT, BURST_FIFO_READ, value, length);
+        cs_deselect();
+        //Flush the FIFO
+        flush_fifo();
+        //Start capture
+        start_capture();
+        for (i = 0; i < length - 8; i += 2) {
+            imageDat[index++] = value[i];
+        }
+
+alt loop:
+    flush_fifo()
+    start_capture()
+    if (has_image_data) {
+      write_image_buf();
+    }
+    wait_for_capture()
+    read_image_buf();
+    has_image_data = true;
+```
