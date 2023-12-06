@@ -1,3 +1,20 @@
+Autocorrected to model
+Conversation opened. 1 unread message.
+
+Skip to content
+Using Gmail with screen readers
+5 of 58,524
+brainchip readme
+Inbox
+Robert Poor <rdpoor@gmail.com>
+
+Attachments4:42 PM (1 hour ago)
+
+to me
+
+ One attachment  •  Scanned by Gmail
+
+
 # spi_cam_test
 Bring up SPi/I2C base OV2640 camera on Microchip MPLAB.X/ Harmony platform
 
@@ -54,4 +71,44 @@ It would be fun to write a simple app using the API that displays the camera
 output in real-time using ASCII art, along the lines of the
 [video-to_ascii](https://github.com/joelibaceta/video-to-ascii/tree/master)
 github repository.
+
+## Online Documents
+
+The only online documentation appears to be example code.  >:[
+
+BMP output example:
+
+Arduino/ArduCAM/examples/mini/ArduCAM_Mini_2MP_OV2640_functions/ArduCAM_Mini_2MP_OV2640_functions.ino
+
+YUV output example:
+
+/Users/r/Projects/BrainChip/git/RPI-Pico-Cam/tflmicro/Arducam/src/arducam.c
+
+Setup:
+
+1. Probe SPI for write / read 0x55
+2. Read and verify vid/pid from I2C bus
+3. Configure for YUV:
+    * wrSensorReg8_8(0xff, 0x01);
+    * wrSensorReg8_8(0x12, 0x80);
+    * sleep_ms(100);
+    * wrSensorRegs8_8(OV2640_YUV_96x96);
+4. reset_fifo() // why is this not at the head of the loop?
+    * write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_MASK)
+5. start_capture()
+    * write_reg(ARDUCHIP_FIFO, FIFO_START_MASK)
+
+Loop:
+6. Wait for completion:
+    * while (!get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)) { asm("nop"); }
+7. Get # of bytes in FIFO:
+    * int length = read_fifo_length();
+8. Slurp bytes from FIFO:
+    * cs_select();      // check if manual CS select is required.
+    * set_fifo_burst(); //Set fifo burst mode
+    * spi_read_blocking(SPI_PORT, BURST_FIFO_READ, value, length);
+    * cs_deselect();
+9. Prepare for next read // why is this not at the head of the loop?
+    * reset_fifo()
+    * start_capture()
 
