@@ -105,10 +105,11 @@ typedef struct {
     APP_ARDU_CAM_STATES state;
     bool spi_is_ready;
     bool has_image;
+    uint32_t timestamp_sys;
 } APP_ARDU_CAM_DATA;
 
 // why +8?
-#define YUV_IMAGE_SIZE (96 * 96 * 2 + 8)
+#define YUV_IMAGE_SIZE ((96 * 96 * 2) + 8)
 
 // *****************************************************************************
 // Private (static, forward) declarations
@@ -134,19 +135,10 @@ __attribute__((unused))
 static uint8_t spi_read_fifo_byte(void);
 
 /**
- * @brief Configure the FIFO for burst mode.
- */
-__attribute__((unused))
-static bool spi_set_fifo_burst(void);
-
-/**
  * @brief Read bytes from the FIFO in burst mode.
- *
- * NOTE: Assumes the FIFO has been configured with spi_set_fifo_burst():
- * this reads buflen bytes from the FIFO into buf.
  */
 __attribute__((unused))
-static bool spi_read_fifo_bytes(uint8_t *buf, size_t buflen);
+static bool spi_read_fifo_burst(uint8_t *buf, size_t buflen);
 
 __attribute__((unused))
 static bool spi_set_bit(uint8_t addr, uint8_t bit);
@@ -188,6 +180,7 @@ void APP_ARDU_CAM_Initialize(void) {
     appData.state = APP_ARDU_CAM_STATE_INIT;
     appData.spi_is_ready = false;
     appData.has_image = false;
+    appData.timestamp_sys = SYS_TIME_CounterGet(); // first FPS will be wrong...
 }
 
 void APP_ARDU_CAM_Tasks(void) {
@@ -245,13 +238,20 @@ void APP_ARDU_CAM_Tasks(void) {
 
     case APP_ARDU_CAM_STATE_START_CAPTURE: {
         // Here to initiate the capture of an image.
-        if (!spi_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK)) {
+        if (!start_capture()) {
             printf("Start Capture failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
 
         printf("Start Capture.\r\n");
+
+        // compute FPS
+        uint32_t now_sys = SYS_TIME_CounterGet();
+        uint32_t dt_us = SYS_TIME_CountToUS(now_sys - appData.timestamp_sys);
+        appData.timestamp_sys = now_sys;
+        printf("FPS: %f\n", 1000000.0 / dt_us);
+
         appData.state = APP_ARDU_CAM_STATE_EMIT_IMAGE;
     } break;
 
@@ -290,16 +290,8 @@ void APP_ARDU_CAM_Tasks(void) {
             break;
         }
 
-        // Set burst mode to efficiently read out the contents of the FIFO
-        // (see spi_read_fifo_bytes())
-        if (!spi_set_fifo_burst()) {
-            printf("Cannot set burst mode\r\n");
-            appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
-            break;
-        }
-
         // Extract contents of FIFO into s_image_buf with a single SPI operation
-        if (!spi_read_fifo_bytes(s_image_buf, length)) {
+        if (!spi_read_fifo_burst(s_image_buf, length)) {
             printf("Could not read FIFO contents\r\n");
             appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
             break;
@@ -329,13 +321,13 @@ bool APP_ARDU_CAM_Task_Failed(void) {
 
 static bool emit_image(const uint8_t *buf, size_t buflen) {
     printf("emitting %d image bytes...\r\n", buflen);
-    // while (n_bytes--) {
-    //     uint8_t byte = spi_read_fifo_byte();
-    //     printf("%02x ", byte); // print image byte
-    //     if (n_bytes % 16 == 0) {
-    //         printf("\r\n");
-    //     }
-    // }
+    for (int i=0; i<buflen; i++) {
+        uint8_t byte = buf[i];
+        printf("%02x ", byte); // print image byte
+        if (i % 24 == 0) {
+            printf("\r\n");
+        }
+    }
     return true;
 }
 
@@ -360,14 +352,10 @@ static uint8_t spi_read_fifo_byte(void) {
     return spi_read_reg(SINGLE_FIFO_READ);
 }
 
-static bool spi_set_fifo_burst(void) {
-    uint8_t tx_buf = BURST_FIFO_READ;
-    return cam_spi_xfer(&tx_buf, sizeof(tx_buf), NULL, 0);
-}
-
-static bool spi_read_fifo_bytes(uint8_t *buf, size_t buflen) {
+static bool spi_read_fifo_burst(uint8_t *buf, size_t buflen) {
     // write (dummy) bytes from buf, read results into buf.
-    return cam_spi_xfer((void *)buf, buflen, (void *)buf, buflen);
+    uint8_t tx_buf[] = {BURST_FIFO_READ};
+    return cam_spi_xfer(tx_buf, sizeof(tx_buf), (void *)buf, buflen);
 }
 
 static bool spi_set_bit(uint8_t addr, uint8_t bit) {
@@ -387,11 +375,8 @@ static bool spi_set_mode(uint8_t mode) {
 }
 
 static uint8_t spi_read_reg(uint8_t addr) {
-    uint8_t tx_buf[2] = {addr, 0x00};
-    uint8_t rx_buf[4];
-
-    cam_spi_xfer(tx_buf, sizeof(tx_buf), rx_buf, sizeof(rx_buf));
-
+    uint8_t rx_buf[2];
+    cam_spi_xfer(&addr, sizeof(addr), rx_buf, sizeof(rx_buf));
     return rx_buf[1];
 }
 
@@ -410,7 +395,7 @@ static bool cam_spi_xfer(void *tx_buf, size_t tx_size, void *rx_buf,
     bool success = SPI0_WriteRead(tx_buf, tx_size, rx_buf, rx_size);
     // NOTE: adding some delay makes it run faster.
     // TODO: optimize??
-     SYSTICK_DelayUs(100);
+     SYSTICK_DelayUs(10);
     return success;
 }
 
