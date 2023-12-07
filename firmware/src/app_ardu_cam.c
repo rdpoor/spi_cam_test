@@ -119,41 +119,33 @@ typedef struct {
  */
 static bool emit_image(const uint8_t *buf, size_t buflen);
 
-__attribute__((unused))
-static bool reset_fifo(void);
+__attribute__((unused)) static bool reset_fifo(void);
 
-__attribute__((unused))
-static bool start_capture(void);
+__attribute__((unused)) static bool start_capture(void);
 
-__attribute__((unused))
-static uint32_t read_fifo_length(void);
+__attribute__((unused)) static uint32_t read_fifo_length(void);
 
 /**
  * @brief Read a single byte from the FIFO.
  */
-__attribute__((unused))
-static uint8_t spi_read_fifo_byte(void);
+__attribute__((unused)) static uint8_t spi_read_fifo_byte(void);
 
 /**
  * @brief Read bytes from the FIFO in burst mode.
  */
-__attribute__((unused))
-static bool spi_read_fifo_burst(uint8_t *buf, size_t buflen);
+__attribute__((unused)) static bool spi_read_fifo_burst(uint8_t *buf,
+                                                        size_t buflen);
 
-__attribute__((unused))
-static bool spi_set_bit(uint8_t addr, uint8_t bit);
+__attribute__((unused)) static bool spi_set_bit(uint8_t addr, uint8_t bit);
 
-__attribute__((unused))
-static bool spi_clear_bit(uint8_t addr, uint8_t bit);
+__attribute__((unused)) static bool spi_clear_bit(uint8_t addr, uint8_t bit);
 
-__attribute__((unused))
-static uint8_t spi_get_bit(uint8_t addr, uint8_t bit);
+__attribute__((unused)) static uint8_t spi_get_bit(uint8_t addr, uint8_t bit);
 
 /**
  * @brief Set mode.  Mode is one of MCU2LCD_MODE, CAM2LCD_MODE, LCD2MCU_MODE
  */
-__attribute__((unused))
-static bool spi_set_mode(uint8_t mode);
+__attribute__((unused)) static bool spi_set_mode(uint8_t mode);
 
 static uint8_t spi_read_reg(uint8_t addr);
 
@@ -206,19 +198,19 @@ void APP_ARDU_CAM_Tasks(void) {
         // Write a byte to the ArduCAM to a test register and read it back to
         // verify SPI operations are working.
         if (!spi_write_reg(ARDUCHIP_TEST1, 0x55)) {
-            printf("SPI probe failed.\r\n");
+            printf("# SPI probe failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
 
         if (spi_read_reg(ARDUCHIP_TEST1) == 0x55) {
-            printf("SPI probe succeeded\r\n");
+            printf("# SPI probe succeeded\r\n");
             appData.spi_is_ready = true;
             appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
             break;
         } else {
             // failed: stay in this state to retry
-            printf("SPI probe pending: ");
+            printf("# SPI probe pending: ");
             appData.state = APP_ARDU_CAM_STATE_PROBE_SPI;
             // TODO: holdoff for 100 mSec?
         }
@@ -228,7 +220,7 @@ void APP_ARDU_CAM_Tasks(void) {
         // Empty the FIFO prior to capturing an image
 
         if (!reset_fifo()) {
-            printf("failed to reset fifo\r\n");
+            printf("# failed to reset fifo\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
@@ -239,18 +231,18 @@ void APP_ARDU_CAM_Tasks(void) {
     case APP_ARDU_CAM_STATE_START_CAPTURE: {
         // Here to initiate the capture of an image.
         if (!start_capture()) {
-            printf("Start Capture failed.\r\n");
+            printf("# Start Capture failed.\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
             break;
         }
 
-        printf("Start Capture.\r\n");
+        printf("# Start Capture.\r\n");
 
         // compute FPS
         uint32_t now_sys = SYS_TIME_CounterGet();
         uint32_t dt_us = SYS_TIME_CountToUS(now_sys - appData.timestamp_sys);
         appData.timestamp_sys = now_sys;
-        printf("FPS: %f\n", 1000000.0 / dt_us);
+        printf("# FPS: %f\n", 1000000.0 / dt_us);
 
         appData.state = APP_ARDU_CAM_STATE_EMIT_IMAGE;
     } break;
@@ -268,7 +260,7 @@ void APP_ARDU_CAM_Tasks(void) {
     case APP_ARDU_CAM_STATE_WAIT_FOR_CAPTURE_COMPLETE: {
         // Probe camera to see if capture has completed.
         if (spi_get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)) {
-            printf("Capture complete\r\n");
+            printf("# Capture complete\r\n");
             appData.state = APP_ARDU_CAM_STATE_READ_FIFO;
             break;
         }
@@ -282,9 +274,9 @@ void APP_ARDU_CAM_Tasks(void) {
 
         // Verify that the FIFO has the expected number of bytes
         size_t length = read_fifo_length();
-        printf("length = %d\r\n", length);
+        printf("# length = %d\r\n", length);
         if (length != sizeof(s_image_buf)) {
-            printf("FIFO length is %d, expected %d\r\n", length,
+            printf("# FIFO length is %d, expected %d\r\n", length,
                    sizeof(s_image_buf));
             appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
             break;
@@ -292,7 +284,7 @@ void APP_ARDU_CAM_Tasks(void) {
 
         // Extract contents of FIFO into s_image_buf with a single SPI operation
         if (!spi_read_fifo_burst(s_image_buf, length)) {
-            printf("Could not read FIFO contents\r\n");
+            printf("# Could not read FIFO contents\r\n");
             appData.state = APP_ARDU_CAM_STATE_RESET_FIFO;
             break;
         }
@@ -320,14 +312,20 @@ bool APP_ARDU_CAM_Task_Failed(void) {
 // Private (static) code
 
 static bool emit_image(const uint8_t *buf, size_t buflen) {
-    printf("emitting %d image bytes...\r\n", buflen);
-    for (int i=0; i<buflen; i++) {
-        uint8_t byte = buf[i];
-        printf("%02x ", byte); // print image byte
+    printf("# emitting %d image bytes...", buflen);
+    // NOTE: it appears that the FIFO stores 0 byte at the
+    // first location and seven 0 bytes at the end.  Adjust
+    // for this...
+    buf = &buf[1];
+    buflen -= 8;
+    for (int i = 0; i < buflen; i++) {
         if (i % 24 == 0) {
             printf("\r\n");
         }
+        uint8_t byte = buf[i];
+        printf("%02x ", byte); // print image byte
     }
+    printf("\r\n");
     return true;
 }
 
@@ -381,7 +379,7 @@ static uint8_t spi_read_reg(uint8_t addr) {
 }
 
 static bool spi_write_reg(uint8_t addr, uint8_t data) {
-    uint8_t tx_buf[2] = {addr | ARDUCHIP_WRITE_OP , data};
+    uint8_t tx_buf[2] = {addr | ARDUCHIP_WRITE_OP, data};
 
     return cam_spi_xfer(tx_buf, sizeof(tx_buf), NULL, 0);
 }
@@ -389,13 +387,12 @@ static bool spi_write_reg(uint8_t addr, uint8_t data) {
 static bool cam_spi_xfer(void *tx_buf, size_t tx_size, void *rx_buf,
                          size_t rx_size) {
     while (SPI0_IsTransmitterBusy()) {
-        printf("!");
         asm("nop");
     }
     bool success = SPI0_WriteRead(tx_buf, tx_size, rx_buf, rx_size);
     // NOTE: adding some delay makes it run faster.
     // TODO: optimize??
-     SYSTICK_DelayUs(10);
+    SYSTICK_DelayUs(10);
     return success;
 }
 

@@ -205,7 +205,7 @@ void APP_OV2640_SENSOR_Tasks(void) {
             appData.retry_count = 0;
             appData.state = APP_OV2640_SENSOR_STATE_CHECK_SENSOR_TYPE;
         } else {
-            printf("could not open I2C driver\r\n");
+            printf("# could not open I2C driver\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
         }
     } break;
@@ -218,39 +218,39 @@ void APP_OV2640_SENSOR_Tasks(void) {
         uint8_t pid = 0xaa;
 
         if (appData.retry_count++ > MAX_RETRY_COUNT) {
-            printf("too many retries\r\n");
+            printf("# too many retries\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
         if (!i2c_write_reg(OV2640_DEV_CTRL_REG, 0x01)) {
-            printf("could not write OV2640_DEV_CTRL_REG\r\n");
+            printf("# could not write OV2640_DEV_CTRL_REG\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
         if (!i2c_read_reg(OV2640_CHIPID_HIGH, &vid)) {
-            printf("could not read vid\r\n");
+            printf("# could not read vid\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
         if (!is_valid_vid(vid)) {
-            printf("vid mismatch (0x%02x) - retrying\r\n", vid);
+            printf("# vid mismatch (0x%02x) - retrying\r\n", vid);
             set_holdoff(APP_OV2640_RETRY_DELAY_MS);
             appData.state = APP_OV2640_SENSOR_STATE_RETRY_WAIT;
             break;
         }
         if (!i2c_read_reg(OV2640_CHIPID_LOW, &pid)) {
-            printf("could not read pid\r\n");
+            printf("# could not read pid\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
         if (!is_valid_pid(pid)) {
-            printf("pid mismatch (0x%02x) - retrying\r\n", pid);
+            printf("# pid mismatch (0x%02x) - retrying\r\n", pid);
             set_holdoff(APP_OV2640_RETRY_DELAY_MS);
             appData.state = APP_OV2640_SENSOR_STATE_RETRY_WAIT;
             break;
         }
         // success...
-        printf("Verified OV2640 vid:pid = 0x%02x:0x%02x\r\n", vid, pid);
+        printf("# Verified OV2640 vid:pid = 0x%02x:0x%02x\r\n", vid, pid);
         appData.state = APP_OV2640_SENSOR_STATE_WRITE_CTRL_REG_COM7;
         break;
     };
@@ -263,12 +263,12 @@ void APP_OV2640_SENSOR_Tasks(void) {
 
     case APP_OV2640_SENSOR_STATE_WRITE_CTRL_REG_COM7: {
         if (!i2c_write_reg(OV2640_DEV_CTRL_REG, 0x01)) {
-            printf("Failed to write OV2640_DEV_CTRL_REG\r\n");
+            printf("# Failed to write OV2640_DEV_CTRL_REG\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
         if (!i2c_write_reg(OV2640_DEV_CTRL_REG_COM7, 0x80)) {
-            printf("Failed to write OV2640_DEV_CTRL_REG_COM7\r\n");
+            printf("# Failed to write OV2640_DEV_CTRL_REG_COM7\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
             break;
         }
@@ -284,9 +284,9 @@ void APP_OV2640_SENSOR_Tasks(void) {
 
     case APP_OV2640_SENSOR_STATE_YUV_INIT: {
         // Configure the camera for YUV_96x96 (2 bytes per pixel)
-        printf("APP_OV2640_SENSOR_STATE_YUV_INIT\r\n");
+        printf("# APP_OV2640_SENSOR_STATE_YUV_INIT\r\n");
         if (!i2c_write_regs(OV2640_YUV_96x96, OV2640_YUV_96x96_count)) {
-            printf("Failed to load OV2640_YUV_96x96\r\n");
+            printf("# Failed to load OV2640_YUV_96x96\r\n");
             appData.state = APP_OV2640_SENSOR_STATE_XFER_ERROR;
         } else {
             set_holdoff(APP_OV2640_I2C_OP_DELAY_MS);
@@ -332,7 +332,7 @@ static bool i2c_write_reg(uint8_t reg, uint8_t data) {
     uint8_t tx_buf[] = {reg, data};
     // NOTE: the call to i2c_write_reg() appears to depend on this
     // printf() to provide a timing delay!
-    printf("i2c_write_reg(0x%02x, 0x%02x)\r\n", tx_buf[0], tx_buf[1]);
+    printf("# i2c_write_reg(0x%02x, 0x%02x)\r\n", tx_buf[0], tx_buf[1]);
     return DRV_I2C_WriteTransfer(appData.drvI2CHandle,
                                  APP_OV2640_SENSOR_I2C_ADDR, (void *)tx_buf,
                                  sizeof(tx_buf));
@@ -341,11 +341,11 @@ static bool i2c_write_reg(uint8_t reg, uint8_t data) {
 static bool i2c_read_reg(uint8_t reg, uint8_t *const data) {
     // NOTE: the call to i2c_read_reg() appears to depend on these
     // printf()s to provide timing delay!
-    printf("i2c_read_reg(0x%02x) on entry, data = %02x\r\n", reg, *data);
+    printf("# i2c_read_reg(0x%02x) on entry, data = %02x\r\n", reg, *data);
     bool success = DRV_I2C_WriteReadTransfer(
         appData.drvI2CHandle, APP_OV2640_SENSOR_I2C_ADDR, (void *)&reg,
         sizeof(reg), (void *const)data, sizeof(uint8_t));
-    printf("i2c_read_reg(0x%02x) => %02x, success = %d\r\n", reg, *data,
+    printf("# i2c_read_reg(0x%02x) => %02x, success = %d\r\n", reg, *data,
            success);
     return success;
 }
@@ -356,7 +356,7 @@ static bool i2c_write_regs(const reg_val_t pairs[], size_t count) {
         if (!DRV_I2C_WriteTransfer(appData.drvI2CHandle,
                                    APP_OV2640_SENSOR_I2C_ADDR, (void *)pair,
                                    sizeof(reg_val_t))) {
-            printf("At pairs[%d], failed to write [0x%02x, 0x%02x]\r\n", i,
+            printf("# At pairs[%d], failed to write [0x%02x, 0x%02x]\r\n", i,
                    pair->reg, pair->val);
             return false;
         } else {

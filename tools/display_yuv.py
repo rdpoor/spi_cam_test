@@ -3,6 +3,9 @@ import tkinter
 IMG_W = 96
 IMG_H = 96
 FILENAME = "yuv_test.txt"
+SCALE = 4
+CAN_W = IMG_W * SCALE
+CAN_H = IMG_H * SCALE
 
 class App:
     def __init__(self, t):
@@ -20,7 +23,8 @@ class App:
             if (col == IMG_W):
                 col = 0
                 row = row + 1
-        c = tkinter.Canvas(t, width=IMG_W, height=IMG_H);
+        self.i = self.i.zoom(SCALE)
+        c = tkinter.Canvas(t, width=CAN_W, height=CAN_H);
         c.pack()
         c.create_image(0, 0, image = self.i, anchor=tkinter.NW)
 
@@ -58,8 +62,7 @@ def yuv_to_rgb_pixel(y, uv):
     # R = Y + 1.4075 * (V - 128)
     # G = Y - 0.3455 * (U - 128) - (0.7169 * (V - 128))
     # B = Y + 1.7790 * (U - 128)
-    # return (R, G, B)
-    y = clamp(y * 4)  # hack
+    # return (clamp(R), clamp(G), clamp(B))
     return (y, y, y)
 
 def clamp(val):
