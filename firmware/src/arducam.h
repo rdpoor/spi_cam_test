@@ -1,5 +1,5 @@
 /**
- * @file ov2640.h
+ * @file arducam.h
  *
  * MIT License
  *
@@ -25,15 +25,17 @@
  */
 
 /**
- * @brief Interface to the OV2640 camera via the I2C bus
+ * @brief Interface to the ARDUCAM camera via the SPI bus (data channel)
  */
 
-#ifndef _OV2640_H_
-#define _OV2640_H_
+#ifndef _ARDUCAM_H_
+#define _ARDUCAM_H_
 
 // *****************************************************************************
 // Includes
 
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 // *****************************************************************************
@@ -47,30 +49,21 @@ extern "C" {
 // Public types and definitions
 
 typedef enum {
-    OV2640_FORMAT_YUV,
-    OV2640_FORMAT_JPEG,
-} ov2640_format_t;
+    ARDUCAM_FORMAT_YUV,
+    ARDUCAM_FORMAT_JPEG,
+} arducam_format_t;
 
 // *****************************************************************************
 // Public declarations
 
-void ov2640_init(void);
-void ov2640_step(void);
-
-/**
- * @brief Probe I2C bus to verify the VID and PID of the camera.
- *
- * Note: This is an asynchronous call -- poll ov2640_succeeded() and
- * ov2640_had_error() until one of them returns true.
- *
- * @return true if the probe process started.
- */
-bool ov2640_probe_i2c(void);
-
-bool ov2640_set_format(ov2640_format_t format);
-
-bool ov2640_succeeded(void);
-bool ov2640_had_error(void);
+void arducam_init(void);
+void arducam_step(void);
+bool arducam_probe_spi(void);
+bool arducam_succeeded(void);
+bool arducam_had_error(void);
+bool arducam_start_capture(void);
+uint32_t arducam_read_fifo_length(void);
+bool arducam_read_fifo(uint8_t *buf, size_t capacity, uint32_t requested);
 
 // *****************************************************************************
 // End of file
@@ -79,4 +72,4 @@ bool ov2640_had_error(void);
 }
 #endif
 
-#endif /* #ifndef _OV2640_H_ */
+#endif /* #ifndef _ARDUCAM_H_ */

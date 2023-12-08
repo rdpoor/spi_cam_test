@@ -1,5 +1,5 @@
 /**
- * @file template.c
+ * @file app_ov2640_sensor.c
  *
  * MIT License
  *
