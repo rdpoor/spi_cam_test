@@ -2947,7 +2947,7 @@
         &lt;ElementPosition dnOrder=&quot;7&quot; id=&quot;stdio&quot; x=&quot;181&quot; y=&quot;223&quot;/&gt;
         &lt;ElementPosition dnOrder=&quot;8&quot; id=&quot;sys_time&quot; x=&quot;217&quot; y=&quot;106&quot;/&gt;
         &lt;ElementPosition dnOrder=&quot;9&quot; id=&quot;twihs0&quot; x=&quot;30&quot; y=&quot;282&quot;/&gt;
-        &lt;ElementPosition dnOrder=&quot;10&quot; id=&quot;usart1&quot; x=&quot;33&quot; y=&quot;209&quot;/&gt;
+        &lt;ElementPosition dnOrder=&quot;10&quot; id=&quot;usart1&quot; x=&quot;33&quot; y=&quot;210&quot;/&gt;
       &lt;/ElementPositions&gt;
     &lt;/ComponentGraph&gt;
   &lt;/UserData&gt;
@@ -5296,7 +5296,7 @@
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
     &lt;Values dnOrder=&quot;1&quot;&gt;
-      &lt;User dnOrder=&quot;0&quot; value=&quot;2000000&quot;/&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;1250000&quot;/&gt;
     &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
@@ -5384,7 +5384,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;spi0&gt;
   &lt;spi0 dnOrder=&quot;0&quot; id=&quot;SPI_CSR3_SCBR_VALUE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;spi0&quot; value=&quot;75&quot;/&gt;
+      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;spi0&quot; value=&quot;120&quot;/&gt;
     &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
@@ -5993,7 +5993,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;usart1&gt;
   &lt;usart1 dnOrder=&quot;0&quot; id=&quot;BAUD_RATE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;User dnOrder=&quot;0&quot; value=&quot;460800&quot;/&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;921600&quot;/&gt;
     &lt;/Values&gt;
   &lt;/usart1&gt;
 &lt;/usart1&gt;
@@ -6004,7 +6004,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;usart1&gt;
   &lt;usart1 dnOrder=&quot;0&quot; id=&quot;BRG_VALUE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;usart1&quot; value=&quot;20&quot;/&gt;
+      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;usart1&quot; value=&quot;10&quot;/&gt;
     &lt;/Values&gt;
   &lt;/usart1&gt;
 &lt;/usart1&gt;
@@ -6520,7 +6520,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\definitions.h</file>
-         <hash>f5cbc624463b6e31ae7aa9290c794800462e30f07ccc5b1436394131ccae0874</hash>
+         <hash>5b460d15fbf007db60093005a3928803910bcbbf2f0102cdf2588d597cf7f734</hash>
       </entry>
       <entry>
          <file>..\src\config\default\device.h</file>
@@ -6564,7 +6564,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\initialization.c</file>
-         <hash>7c14b0be7913531780133d80aeaf88f3725524e366175b1bed089ae00d55ef0c</hash>
+         <hash>07c42890131ca17afd4835c3994c2a38b72008487c2b49f4dcf8fa4bfc01ddb6</hash>
       </entry>
       <entry>
          <file>..\src\config\default\interrupts.c</file>
@@ -6624,7 +6624,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\peripheral\spi\spi_master\plib_spi0_master.c</file>
-         <hash>b683279cd431482da3fc19db39667cfcc89e1b870aaef2600c75cfef9757f4b1</hash>
+         <hash>b21cfc04bc07dd3002cd914343df8971babea428cf1665338722ae9599731344</hash>
       </entry>
       <entry>
          <file>..\src\config\default\peripheral\spi\spi_master\plib_spi0_master.h</file>
@@ -6656,7 +6656,7 @@
       </entry>
       <entry>
          <file>..\src\config\default\peripheral\usart\plib_usart1.c</file>
-         <hash>897f9189d09a2bff59d17497316f3b88c453723a1d86d29eaee8339fe43a1561</hash>
+         <hash>ec042ac895ce3be2bba23e048d82aef46ddd1af70ca71cae3f7ede819974c4b7</hash>
       </entry>
       <entry>
          <file>..\src\config\default\peripheral\usart\plib_usart1.h</file>

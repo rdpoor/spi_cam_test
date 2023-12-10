@@ -59,11 +59,10 @@ typedef enum {
 void arducam_init(void);
 void arducam_step(void);
 bool arducam_probe_spi(void);
+bool arducam_start_capture(void);
+bool arducam_read_fifo(uint8_t *buf, size_t capacity);
 bool arducam_succeeded(void);
 bool arducam_had_error(void);
-bool arducam_start_capture(void);
-uint32_t arducam_read_fifo_length(void);
-bool arducam_read_fifo(uint8_t *buf, size_t capacity, uint32_t requested);
 
 // *****************************************************************************
 // End of file

@@ -37,9 +37,14 @@
 // *****************************************************************************
 // Private types and definitions
 
-#define YUV_WIDTH 96
-#define YUV_HEIGHT 96
+#define IMAGE_WIDTH 96
+#define IMAGE_HEIGHT 96
 #define YUV_DEPTH 2
+#define RGB_DEPTH 3
+
+// The camera fifo generates an extra 8 bytes (not sure why)
+#define YUV_BUFFER_SIZE ((IMAGE_WIDTH * IMAGE_HEIGHT * YUV_DEPTH) + 8)
+#define RGB_BUFFER_SIZE (IMAGE_WIDTH * IMAGE_HEIGHT * RGB_DEPTH)
 
 typedef enum {
     APP_STATE_INIT,
@@ -48,19 +53,13 @@ typedef enum {
     APP_STATE_START_PROBE_SPI,
     APP_STATE_AWAIT_PROBE_SPI,
     APP_STATE_PROBE_COMPLETE,
-    APP_STATE_START_CONFIGURE_YUV,
-    APP_STATE_AWAIT_CONFIGURE_YUV,
-    APP_STATE_START_CAPTURE_YUV,
-    APP_STATE_AWAIT_CAPTURE_YUV,
-    APP_STATE_LOAD_YUV,
-    APP_STATE_START_EMIT_YUV,
-    APP_STATE_AWAIT_EMIT_YUV,
-    APP_STATE_START_CONFIGURE_JPG,
-    APP_STATE_AWAIT_CONFIGURE_JPG,
-    APP_STATE_START_CAPTURE_JPG,
-    APP_STATE_AWAIT_CAPTURE_JPG,
-    APP_STATE_START_EMIT_JPG,
-    APP_STATE_AWAIT_EMIT_JPG,
+    APP_STATE_START_CONFIGURE_CAMERA,
+    APP_STATE_AWAIT_CONFIGURE_CAMERA,
+    APP_STATE_START_CAPTURE_IMAGE,
+    APP_STATE_AWAIT_CAPTURE_IMAGE,
+    APP_STATE_LOAD_IMAGE,
+    APP_STATE_CONVERT_YUV_TO_RGB,
+    APP_STATE_EMIT_RGB,
     APP_STATE_SUCCESS,
     APP_STATE_ERROR,
 } app_state_t;
@@ -73,12 +72,33 @@ typedef struct {
 // *****************************************************************************
 // Private (static) storage
 
-static uint8_t s_yuv_buf[YUV_WIDTH * YUV_HEIGHT * YUV_DEPTH];
+/**
+ * @buffer to hold YUV data captured from camera
+ */
+static uint8_t s_yuv_buf[YUV_BUFFER_SIZE];
+
+/**
+ * @buffer to hold RGB data converted from YUV
+ */
+static uint8_t s_rgb_buf[RGB_BUFFER_SIZE];
 
 static app_ctx_t s_app;
 
 // *****************************************************************************
 // Private (static, forward) declarations
+
+/**
+ * @brief Convert the YUV pixels in s_yuv_buf to RGB pixels in s_rgb_buf.
+ *
+ * Note that this reads four bytes at a time (y0, u, y1, v) and writes six
+ * (r0, g0, b0, r1, g1, b1)
+ */
+static void convert_yuv_to_rgb(void);
+
+static uint8_t clamp(float v);
+
+// *****************************************************************************
+// Public code
 
 void APP_Initialize(void) {
     printf("\n# =========================="
@@ -140,135 +160,77 @@ void APP_Tasks(void) {
     case APP_STATE_PROBE_COMPLETE: {
         // Here, both I2C and SPI operations have been tested and verified
         printf("# ArduCam detected\r\n");
-        s_app.state = APP_STATE_START_CONFIGURE_YUV;
+        s_app.state = APP_STATE_START_CONFIGURE_CAMERA;
     } break;
 
-    case APP_STATE_START_CONFIGURE_YUV: {
+    case APP_STATE_START_CONFIGURE_CAMERA: {
         // Configure the camera to capture YUV 96 x 96
         if (!ov2640_set_format(OV2640_FORMAT_YUV)) {
             printf("# ov2640_configure(OV2640_MODE_YUV) failed\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
-            s_app.state = APP_STATE_AWAIT_CONFIGURE_YUV;
+            s_app.state = APP_STATE_AWAIT_CONFIGURE_CAMERA;
         }
-    } break;
+        break;
+    }
 
-    case APP_STATE_AWAIT_CONFIGURE_YUV: {
+    case APP_STATE_AWAIT_CONFIGURE_CAMERA: {
         if (ov2640_succeeded()) {
-            s_app.state = APP_STATE_START_CAPTURE_YUV;
+            printf("# Cconfigured OV2640 for YUV mode\r\n");
+            s_app.state = APP_STATE_START_CAPTURE_IMAGE;
+            break;
         } else if (ov2640_had_error()) {
-            printf("# Could not configure OV2640 for YUV mode");
+            printf("# Could not configure OV2640 for YUV mode\r\n");
             s_app.state = APP_STATE_ERROR;
+            break;
         } else {
             // remain in this state until configuration completes
             // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_CONFIGURE_YUV;
+            s_app.state = APP_STATE_AWAIT_CONFIGURE_CAMERA;
+            break;
         }
-    } break;
+    }
 
-    case APP_STATE_START_CAPTURE_YUV: {
+    case APP_STATE_START_CAPTURE_IMAGE: {
         // Capture YUV 96 x 96
         if (!arducam_start_capture()) {
             printf("# arducam_start_capture() YUV failed\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
-            s_app.state = APP_STATE_AWAIT_CAPTURE_YUV;
+            s_app.state = APP_STATE_AWAIT_CAPTURE_IMAGE;
         }
-    } break;
+        break;
+    }
 
-    case APP_STATE_AWAIT_CAPTURE_YUV: {
+    case APP_STATE_AWAIT_CAPTURE_IMAGE: {
         // Check if capture is complete
         if (arducam_succeeded()) {
-            s_app.state = APP_STATE_LOAD_YUV;
+            s_app.state = APP_STATE_LOAD_IMAGE;
         } else if (arducam_had_error()) {
             printf("# Arducam capture of YUV failed\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
             // remain in this state until configuration completes
             // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_CAPTURE_YUV;
+            s_app.state = APP_STATE_AWAIT_CAPTURE_IMAGE;
         }
     } break;
 
-    case APP_STATE_LOAD_YUV: {
-        // Read the YUV 96 x 96 image into in-memory buffer
-        uint32_t n_bytes = arducam_read_fifo_length();
-        if (arducam_read_fifo(s_yuv_buf, sizeof(s_yuv_buf), n_bytes)) {
-            s_app.state = APP_STATE_START_EMIT_YUV;
+    case APP_STATE_LOAD_IMAGE: {
+        if (arducam_read_fifo(s_yuv_buf, sizeof(s_yuv_buf))) {
+            s_app.state = APP_STATE_CONVERT_YUV_TO_RGB;
         } else {
-            printf("# Unable to read %ld YUV bytes\r\n", n_bytes);
+            printf("# Unable to read YUV bytes\r\n");
             s_app.state = APP_STATE_ERROR;
         }
     } break;
 
-    case APP_STATE_START_EMIT_YUV: {
-        // Send the YUV 96 x 96 image to the inference engine
-        // STUB
-        s_app.state = APP_STATE_AWAIT_EMIT_YUV;
+    case APP_STATE_CONVERT_YUV_TO_RGB: {
+        convert_yuv_to_rgb();
+        s_app.state = APP_STATE_EMIT_RGB;
     } break;
 
-    case APP_STATE_AWAIT_EMIT_YUV: {
-        // Have we finished sending the image to the inference engine?
-        // NOTE: this can be overlapped with other operations...
-        // STUB
-        s_app.state = APP_STATE_START_CONFIGURE_JPG;
-    } break;
-
-    case APP_STATE_START_CONFIGURE_JPG: {
-        // Configure the camera to capture JPEG
-        if (!ov2640_set_format(OV2640_FORMAT_JPEG)) {
-            printf("# ov2640_configure(OV2640_MODE_JPEG) failed\r\n");
-            s_app.state = APP_STATE_ERROR;
-        } else {
-            s_app.state = APP_STATE_AWAIT_CONFIGURE_JPG;
-        }
-    } break;
-
-    case APP_STATE_AWAIT_CONFIGURE_JPG: {
-        if (ov2640_succeeded()) {
-            s_app.state = APP_STATE_START_CAPTURE_JPG;
-        } else if (ov2640_had_error()) {
-            printf("# Could not configure OV2640 for YUV mode");
-            s_app.state = APP_STATE_ERROR;
-        } else {
-            // remain in this state until configuration completes
-            // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_CONFIGURE_JPG;
-        }
-    } break;
-
-    case APP_STATE_START_CAPTURE_JPG: {
-        // Capture JPEG image
-        if (!arducam_start_capture()) {
-            printf("# arducam_start_capture() JPG failed\r\n");
-            s_app.state = APP_STATE_ERROR;
-        } else {
-            s_app.state = APP_STATE_AWAIT_CAPTURE_JPG;
-        }
-    } break;
-
-    case APP_STATE_AWAIT_CAPTURE_JPG: {
-        // Check if capture is complete
-        if (arducam_succeeded()) {
-            s_app.state = APP_STATE_START_EMIT_JPG;
-        } else if (arducam_had_error()) {
-            printf("# Arducam capture of JPG failed\r\n");
-            s_app.state = APP_STATE_ERROR;
-        } else {
-            // remain in this state until configuration completes
-            // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_CAPTURE_JPG;
-        }
-    } break;
-
-    case APP_STATE_START_EMIT_JPG: {
-        // Send the JPG image to the host computer for previewing
-        // STUB
-        s_app.state = APP_STATE_AWAIT_EMIT_JPG;
-    } break;
-
-    case APP_STATE_AWAIT_EMIT_JPG: {
-        // Send the JPG image to the host computer for previewing
+    case APP_STATE_EMIT_RGB: {
         // STUB
         s_app.state = APP_STATE_SUCCESS;
     } break;
@@ -279,8 +241,8 @@ void APP_Tasks(void) {
         uint32_t dt_us = SYS_TIME_CountToUS(now_sys - s_app.timestamp_sys);
         s_app.timestamp_sys = now_sys;
         printf("# FPS: %f\n", 1000000.0 / dt_us);
-
-        s_app.state = APP_STATE_START_CONFIGURE_YUV;
+        // printf("."); fflush(stdout);
+        s_app.state = APP_STATE_START_CAPTURE_IMAGE;
     } break;
 
     case APP_STATE_ERROR: {
@@ -290,18 +252,39 @@ void APP_Tasks(void) {
     } // switch
 }
 
-// __attribute__((format(printf, 1, 2))) _Noreturn void
-// APP_panic(const char *format, ...) {
-//     va_list args;
-//
-//     va_start(args, format);
-//     vprintf(format, args);
-//     va_end(args);
-//     // TODO: if needed, fflush(stdout) before going into infinite loop
-//     while (1) {
-//         asm("nop");
-//     }
-// }
+// *****************************************************************************
+// Private (static) code
+
+static void convert_yuv_to_rgb(void) {
+    uint8_t *yuv = s_yuv_buf;
+    uint8_t *rgb = s_rgb_buf;
+
+    for (int i=0; i<sizeof(s_yuv_buf); i+=4) {
+        // read 4 bytes: [y0, u, y1, v]
+        uint8_t y0 = *yuv++;
+        uint8_t u = *yuv++;
+        uint8_t y1 = *yuv++;
+        uint8_t v = *yuv++;
+
+        // emit six bytes: [r0, g0, b0, r1, g1, b1]
+        *rgb++ = clamp(y0 + 1.4075 * (v - 128));
+        *rgb++ = clamp(y0 - 0.3455 * (u - 128) - (0.7169 * (v - 128)));
+        *rgb++ = clamp(y0 + 1.7790 * (u - 128));
+        *rgb++ = clamp(y1 + 1.4075 * (v - 128));
+        *rgb++ = clamp(y1 - 0.3455 * (u - 128) - (0.7169 * (v - 128)));
+        *rgb++ = clamp(y1 + 1.7790 * (u - 128));
+    }
+}
+
+static uint8_t clamp(float v) {
+    if (v < 0.0) {
+        return 0;
+    } else if (v > 255.0) {
+        return 255;
+    } else {
+        return v;
+    }
+}
 
 /*******************************************************************************
  End of File
