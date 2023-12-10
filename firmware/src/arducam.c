@@ -33,6 +33,7 @@
 #include "arducam.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 // *****************************************************************************
 // Private types and definitions
@@ -56,8 +57,9 @@
 #define FIFO_CLEAR_MASK 0x01
 #define FIFO_START_MASK 0x02
 
-#define ARDUCHIP_TRIG 0x41 // Trigger source
-#define CAP_DONE_MASK 0x08
+#define ARDUCHIP_TRIG 0x41   // Trigger source
+#define CLEAR_DONE_MASK 0x01 // Write this bit to clear the done bit
+#define CAP_DONE_MASK 0x08   // Read as true when capture complete
 
 #define BURST_FIFO_READ 0x3C  // Burst FIFO read operation
 #define SINGLE_FIFO_READ 0x3D // Single FIFO read operation
@@ -96,6 +98,7 @@ typedef struct {
     int retry_count;       // general retry counter
     uint8_t *yuv_buf;
     size_t yuv_buf_capacity;
+    uint32_t timestamp_sys; // for telemetry
 } arducam_ctx_t;
 
 // *****************************************************************************
@@ -113,7 +116,15 @@ static bool reset_fifo(void);
 
 static bool start_capture(void);
 
+/**
+ * @brief Return true if capture completed.
+ */
 static bool capture_is_complete(void);
+
+/**
+ * @brief Clear the capture completed bit.
+ */
+__attribute__((unused)) static bool clear_capture_complete(void);
 
 static uint32_t read_fifo_length(void);
 
@@ -211,6 +222,13 @@ void arducam_step(void) {
             s_arducam.state = ARDUCAM_STATE_ERROR;
             break;
         }
+        // if (!clear_capture_complete()) {
+        //     printf("# failed to clear capture complete flag\r\n");
+        //     s_arducam.state = ARDUCAM_STATE_ERROR;
+        //     break;
+        // }
+        memset(s_arducam.yuv_buf, 0, s_arducam.yuv_buf_capacity); // debugging
+        s_arducam.timestamp_sys = SYS_TIME_CounterGet();
         if (!start_capture()) {
             printf("# Start capture failed.\r\n");
             s_arducam.state = ARDUCAM_STATE_ERROR;
@@ -224,15 +242,13 @@ void arducam_step(void) {
 
     case ARDUCAM_STATE_AWAIT_CAPTURE: {
         if (capture_is_complete()) {
-            // capture completed
-            // printf("# completed after = %d\r\n", s_arducam.retry_count);
+            uint32_t dt = SYS_TIME_CounterGet() - s_arducam.timestamp_sys;
+            LED0__Toggle();
+            printf("    capture = %3ld tics, ", dt);
             s_arducam.state = ARDUCAM_STATE_SUCCESS;
-        // } else if (s_arducam.retry_count++ > MAX_CAPTURE_WAIT_COUNT) {
-        //     // timed out waiting for capture to report done: restart
-        //     printf("# retry\r\n");
-        //     s_arducam.state = ARDUCAM_STATE_START_CAPTURE;
         } else {
             // remain in this state.
+            s_arducam.retry_count += 1;
         }
     } break;
 
@@ -244,6 +260,7 @@ void arducam_step(void) {
             s_arducam.state = ARDUCAM_STATE_ERROR;
             break;
         }
+        s_arducam.timestamp_sys = SYS_TIME_CounterGet();
         if (!spi_read_fifo_burst(s_arducam.yuv_buf, length)) {
             printf("# Could not read FIFO contents\r\n");
             s_arducam.state = ARDUCAM_STATE_ERROR;
@@ -254,6 +271,13 @@ void arducam_step(void) {
 
     case ARDUCAM_STATE_AWAIT_READ_FIFO: {
         // TODO: perhaps await_holdoff()?
+        uint32_t dt = SYS_TIME_CounterGet() - s_arducam.timestamp_sys;
+        printf("load = %3ld tics, samples = ", dt);
+        // more debugging
+        for (int i=0; i<20; i++) {
+            printf("%02x ", s_arducam.yuv_buf[i]);
+        }
+        printf("%02x ", s_arducam.yuv_buf[s_arducam.yuv_buf_capacity-1]);
         s_arducam.state = ARDUCAM_STATE_SUCCESS;
     } break;
 
@@ -308,17 +332,13 @@ static bool start_capture(void) {
     return spi_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK);
 }
 
-static bool capture_is_complete(void) {
-    // The correct way:
-    // return spi_get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK);
+static bool clear_capture_complete(void) {
+    // TODO: can we just write register rather than write bit?
+    return spi_set_bit(ARDUCHIP_TRIG, CLEAR_DONE_MASK);
+}
 
-    // Super hack experiment: I have noticed the CAP_DONE_MASK bit occasionally
-    // gets set in rx_buf[0] rather than rx_buf[1].  See if this prevents hangs
-    // while waiting for capture_is_complete()
-    uint8_t addr = ARDUCHIP_TRIG;
-    uint8_t rx_buf[2];
-    cam_spi_xfer(&addr, sizeof(addr), rx_buf, sizeof(rx_buf));
-    return (rx_buf[1] & CAP_DONE_MASK) || (rx_buf[0] & CAP_DONE_MASK);
+static bool capture_is_complete(void) {
+    return spi_get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK);
 }
 
 static uint32_t read_fifo_length(void) {

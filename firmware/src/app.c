@@ -176,7 +176,7 @@ void APP_Tasks(void) {
 
     case APP_STATE_AWAIT_CONFIGURE_CAMERA: {
         if (ov2640_succeeded()) {
-            printf("# Cconfigured OV2640 for YUV mode\r\n");
+            printf("# Configured OV2640 for YUV mode\r\n");
             s_app.state = APP_STATE_START_CAPTURE_IMAGE;
             break;
         } else if (ov2640_had_error()) {

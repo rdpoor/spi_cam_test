@@ -35,7 +35,7 @@
 41,PC4,,Available,In,,,,,,,
 42,PA13,,Available,In,,,,,,,
 45,PA16,,Available,In,,,,,,,
-46,PA23,LED0_,GPIO,In,n/a,No,Disabled,No,No,Disabled,Low
+46,PA23,LED0_,GPIO,Out,High,No,Disabled,No,No,Disabled,Low
 47,PD27,,SPI0_NPCS3,n/a,n/a,No,Disabled,No,No,Disabled,Low
 48,PC7,,Available,In,,,,,,,
 49,PA15,,Available,In,,,,,,,

@@ -38,6 +38,7 @@
 // Private types and definitions
 
 #define MAX_RETRY_COUNT 5
+#define RESET_HOLDOFF_MS 100
 #define RETRY_DELAY_MS 100
 #define I2C_OP_HOLDOFF_MS 100
 
@@ -62,6 +63,10 @@ typedef struct {
  */
 typedef enum {
     OV2640_STATE_INIT,
+    OV2640_STATE_START_ASSERT_RESET,
+    OV2640_STATE_AWAIT_ASSERT_RESET,
+    OV2640_STATE_START_DEASSERT_RESET,
+    OV2640_STATE_AWAIT_DEASSERT_RESET,
     OV2640_STATE_CHECK_VID_PID,
     OV2640_STATE_RETRY_WAIT,
     OV2640_STATE_START_SET_FORMAT,
@@ -196,8 +201,35 @@ void ov2640_step(void) {
     switch (s_ov2640.state) {
 
     case OV2640_STATE_INIT: {
-        // remain in this state until a call to ov2640_probe_i2c or
-        // ov2640_set_format advances the state
+        // remain in this state until a call to ov2640_probe_i2c advances state
+    } break;
+
+    case OV2640_STATE_START_ASSERT_RESET: {
+        // reset the controller chip: assert reset bit and wait 100 mSec
+        if (!i2c_write_reg(0x07, 0x80)) {
+            s_ov2640.state = OV2640_STATE_ERROR;
+        } else {
+            set_holdoff(RESET_HOLDOFF_MS);
+            s_ov2640.state = OV2640_STATE_AWAIT_ASSERT_RESET;
+        }
+    } break;
+
+    case OV2640_STATE_AWAIT_ASSERT_RESET: {
+        await_holdoff(OV2640_STATE_START_DEASSERT_RESET);
+    } break;
+
+    case OV2640_STATE_START_DEASSERT_RESET: {
+        // de-assert reset bit and wait another 100 mSec
+        if (!i2c_write_reg(0x07, 0x00)) {
+            s_ov2640.state = OV2640_STATE_ERROR;
+        } else {
+            set_holdoff(RESET_HOLDOFF_MS);
+            s_ov2640.state = OV2640_STATE_AWAIT_DEASSERT_RESET;
+        }
+    } break;
+
+    case OV2640_STATE_AWAIT_DEASSERT_RESET: {
+        await_holdoff(OV2640_STATE_CHECK_VID_PID);
     } break;
 
     case OV2640_STATE_CHECK_VID_PID: {
@@ -309,6 +341,7 @@ bool ov2640_probe_i2c(void) {
     } else {
         // I2C open succeeded - advance state
         s_ov2640.retry_count = 0;
+        // s_ov2640.state = OV2640_STATE_START_ASSERT_RESET;
         s_ov2640.state = OV2640_STATE_CHECK_VID_PID;
         return true;
     }

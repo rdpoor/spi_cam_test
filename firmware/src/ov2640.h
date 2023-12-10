@@ -67,6 +67,14 @@ void ov2640_step(void);
  */
 bool ov2640_probe_i2c(void);
 
+/**
+ * @brief Set the format of the camera.
+ *
+ * NOTE: This can only be called after a successful return from ov2640_probe_i2c
+ *
+ * Note: This is an asynchronous call -- poll ov2640_succeeded() and
+ * ov2640_had_error() until one of them returns true.
+ */
 bool ov2640_set_format(ov2640_format_t format);
 
 bool ov2640_succeeded(void);
