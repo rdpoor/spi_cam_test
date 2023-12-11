@@ -104,9 +104,6 @@ bool ov2640_spi_test_bit(uint8_t addr, uint8_t bitmask, bool *value) {
     }
     SYSTICK_DelayUs(10);
     *value = (data & bitmask) ? true : false;
-    if (*value) {
-        printf("# === a:%02x d:%02x m:%02x v:%02x\r\n", addr, data, bitmask, *value);
-    }
     return true;
 }
 

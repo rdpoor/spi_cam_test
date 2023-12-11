@@ -232,27 +232,27 @@ ${OBJECTDIR}/_ext/1360937237/app.o: ../src/app.c  .generated_files/flags/default
 	
 ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o: ../src/ov2640_i2c.c  .generated_files/flags/default/fc39400d451d20581e3517be99ea07b873f1ddb9 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
 	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o ../src/ov2640_i2c.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o ../src/ov2640_i2c.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
 	
-${OBJECTDIR}/_ext/1360937237/ov2640_spi.o: ../src/ov2640_spi.c  .generated_files/flags/default/f8dcc77ca38176f0f6fd5f1ecfbb4d53e384f619 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
+${OBJECTDIR}/_ext/1360937237/ov2640_spi.o: ../src/ov2640_spi.c  .generated_files/flags/default/a83c3fdfce5b5f571114edefdf7a96604b6baa19 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
 	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o ../src/ov2640_spi.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
-
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o ../src/ov2640_spi.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
+	
 ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o: ../src/cam_ctrl_task.c  .generated_files/flags/default/64f536bbc568396d5390fe7b5ba473e5154db15e .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
-	@${MKDIR} "${OBJECTDIR}/_ext/1360937237"
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o ../src/cam_ctrl_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
-
+	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o ../src/cam_ctrl_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
+	
 ${OBJECTDIR}/_ext/1360937237/cam_data_task.o: ../src/cam_data_task.c  .generated_files/flags/default/8905407eb01056621dd026da86acef11fc5e14dc .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
-	@${MKDIR} "${OBJECTDIR}/_ext/1360937237"
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_data_task.o ../src/cam_data_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
+	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG   -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_data_task.o ../src/cam_data_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
 	
 else
 ${OBJECTDIR}/_ext/158385033/drv_i2c.o: ../src/config/default/driver/i2c/src/drv_i2c.c  .generated_files/flags/default/7b92507615a9232e49b4b58098eec9ce2830cd01 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
@@ -382,28 +382,28 @@ ${OBJECTDIR}/_ext/1360937237/app.o: ../src/app.c  .generated_files/flags/default
 	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/app.o.d" -o ${OBJECTDIR}/_ext/1360937237/app.o ../src/app.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
 	
 ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o: ../src/ov2640_i2c.c  .generated_files/flags/default/11b36d4e714db839ca16706a2f0678cc510fca37 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
-	@${MKDIR} "${OBJECTDIR}/_ext/1360937237"
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o ../src/ov2640_i2c.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
-
-${OBJECTDIR}/_ext/1360937237/ov2640_spi.o: ../src/ov2640_spi.c  .generated_files/flags/default/436a3e5c016fcbc36a103878a87177611fc01f3d .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
-	@${MKDIR} "${OBJECTDIR}/_ext/1360937237"
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o ../src/ov2640_spi.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
-
+	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_i2c.o ../src/ov2640_i2c.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
+	
+${OBJECTDIR}/_ext/1360937237/ov2640_spi.o: ../src/ov2640_spi.c  .generated_files/flags/default/563b428c70b19099346f00808150bb2626a34a76 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
+	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/ov2640_spi.o.d" -o ${OBJECTDIR}/_ext/1360937237/ov2640_spi.o ../src/ov2640_spi.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
+	
 ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o: ../src/cam_ctrl_task.c  .generated_files/flags/default/3abb896dae611b979c67d63ac1d3ed1d4747cc96 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
 	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o ../src/cam_ctrl_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_ctrl_task.o ../src/cam_ctrl_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
 	
 ${OBJECTDIR}/_ext/1360937237/cam_data_task.o: ../src/cam_data_task.c  .generated_files/flags/default/c7fa8f6fefe43c6600e45386265d03af023fc0e2 .generated_files/flags/default/da39a3ee5e6b4b0d3255bfef95601890afd80709
 	@${MKDIR} "${OBJECTDIR}/_ext/1360937237" 
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d
-	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o
-	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_data_task.o ../src/cam_data_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS}
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d 
+	@${RM} ${OBJECTDIR}/_ext/1360937237/cam_data_task.o 
+	${MP_CC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -ffunction-sections -fdata-sections -O2 -fno-common -I"../src" -I"../src/config/default" -I"../src/packs/ATSAMV71Q21B_DFP" -I"../src/packs/CMSIS/" -I"../src/packs/CMSIS/CMSIS/Core/Include" -Werror -Wall -MP -MMD -MF "${OBJECTDIR}/_ext/1360937237/cam_data_task.o.d" -o ${OBJECTDIR}/_ext/1360937237/cam_data_task.o ../src/cam_data_task.c    -DXPRJ_default=$(CND_CONF)    $(COMPARISON_BUILD)  -mdfp="${DFP_DIR}/samv71b" ${PACK_COMMON_OPTIONS} 
 	
 endif
 
