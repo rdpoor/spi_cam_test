@@ -211,8 +211,10 @@
         </logicalFolder>
       </logicalFolder>
       <itemPath>../src/app.h</itemPath>
-      <itemPath>../src/ov2640.h</itemPath>
-      <itemPath>../src/arducam.h</itemPath>
+      <itemPath>../src/ov2640_i2c.h</itemPath>
+      <itemPath>../src/ov2640_spi.h</itemPath>
+      <itemPath>../src/cam_ctrl_task.h</itemPath>
+      <itemPath>../src/cam_data_task.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -288,8 +290,10 @@
       <itemPath>../src/config/default/pin_configurations.csv</itemPath>
       <itemPath>../src/main.c</itemPath>
       <itemPath>../src/app.c</itemPath>
-      <itemPath>../src/ov2640.c</itemPath>
-      <itemPath>../src/arducam.c</itemPath>
+      <itemPath>../src/ov2640_i2c.c</itemPath>
+      <itemPath>../src/ov2640_spi.c</itemPath>
+      <itemPath>../src/cam_ctrl_task.c</itemPath>
+      <itemPath>../src/cam_data_task.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

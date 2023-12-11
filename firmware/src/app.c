@@ -28,9 +28,11 @@
 // Includes
 
 #include "app.h"
-#include "arducam.h"
+#include "cam_ctrl_task.h"
+#include "cam_data_task.h"
 #include "definitions.h"
-#include "ov2640.h"
+#include "ov2640_i2c.h"
+#include "ov2640_spi.h"
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -48,13 +50,17 @@
 
 typedef enum {
     APP_STATE_INIT,
-    APP_STATE_START_PROBE_I2C,
-    APP_STATE_AWAIT_PROBE_I2C,
+    APP_STATE_START_RESET_CAMERA,
+    APP_STATE_AWAIT_RESET_CAMERA,
     APP_STATE_START_PROBE_SPI,
     APP_STATE_AWAIT_PROBE_SPI,
-    APP_STATE_PROBE_COMPLETE,
-    APP_STATE_START_CONFIGURE_CAMERA,
-    APP_STATE_AWAIT_CONFIGURE_CAMERA,
+    APP_STATE_START_PROBE_I2C,
+    APP_STATE_AWAIT_PROBE_I2C,
+    APP_STATE_START_SETUP_CAMERA_CONTROL,
+    APP_STATE_AWAIT_SETUP_CAMERA_CONTROL,
+    APP_STATE_START_SETUP_CAMERA_DATA,
+    APP_STATE_AWAIT_SETUP_CAMERA_DATA,
+    APP_STATE_CAMERA_READY,
     APP_STATE_START_CAPTURE_IMAGE,
     APP_STATE_AWAIT_CAPTURE_IMAGE,
     APP_STATE_LOAD_IMAGE,
@@ -65,8 +71,9 @@ typedef enum {
 } app_state_t;
 
 typedef struct {
-    app_state_t state;      // current application state
-    uint32_t timestamp_sys; // for capturing Frames Per Second
+    app_state_t state;         // current application state
+    DRV_HANDLE i2c_drv_handle; // handle for I2C interface
+    uint32_t timestamp_sys;    // for capturing Frames Per Second
 } app_ctx_t;
 
 // *****************************************************************************
@@ -102,33 +109,96 @@ static uint8_t clamp(float v);
 
 void APP_Initialize(void) {
     printf("\n# =========================="
-           "\n# ArduCam OV2460 Test v%s\r\n",
+           "\n# ArduCam OV2640 Test v%s\r\n",
            APP_VERSION);
     s_app.state = APP_STATE_INIT;
-    ov2640_init();
-    arducam_init();
+    s_app.i2c_drv_handle = DRV_HANDLE_INVALID;
+    cam_ctrl_task_init();
+    cam_data_task_init();
 }
 
 void APP_Tasks(void) {
-    ov2640_step();
-    arducam_step();
+    if (s_app.i2c_drv_handle != DRV_HANDLE_INVALID) {
+        // only run sub-tasks if I2C driver is open
+        cam_ctrl_task_step();
+        cam_data_task_step();
+    }
 
     switch (s_app.state) {
 
     case APP_STATE_INIT: {
-        s_app.state = APP_STATE_START_PROBE_I2C;
+        s_app.i2c_drv_handle =
+            DRV_I2C_Open(DRV_I2C_INDEX_0, DRV_IO_INTENT_READWRITE);
+        if (s_app.i2c_drv_handle != DRV_HANDLE_INVALID) {
+            ov2640_i2c_init(s_app.i2c_drv_handle);
+            s_app.state = APP_STATE_START_RESET_CAMERA;
+        } else {
+            // remain in this state until open succeeds
+        }
+    } break;
+
+    case APP_STATE_START_RESET_CAMERA: {
+        if (!cam_ctrl_reset_camera()) {
+            printf("# Failed to initiate camera reset\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            s_app.state = APP_STATE_AWAIT_RESET_CAMERA;
+        }
+    } break;
+
+    case APP_STATE_AWAIT_RESET_CAMERA: {
+        if (cam_ctrl_task_succeeded()) {
+            s_app.state = APP_STATE_START_PROBE_I2C;
+        } else if (cam_ctrl_task_had_error()) {
+            printf("# Reset ArduCam failed\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            // probe still pending -- remain in this state
+            // TODO: add timeout?
+            s_app.state = APP_STATE_AWAIT_RESET_CAMERA;
+        }
+    } break;
+
+    case APP_STATE_START_PROBE_SPI: {
+        if (!cam_data_task_probe_spi()) {
+            printf("# Call to probe spi bus failed\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            s_app.state = APP_STATE_AWAIT_PROBE_SPI;
+        }
+    } break;
+
+    case APP_STATE_AWAIT_PROBE_SPI: {
+        if (cam_data_task_succeeded()) {
+            s_app.state = APP_STATE_START_PROBE_I2C;
+        } else if (cam_data_task_had_error()) {
+            printf("# Probe spi bus failed\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            // probe still pending -- remain in this state
+            // TODO: add timeout?
+            s_app.state = APP_STATE_AWAIT_PROBE_SPI;
+        }
     } break;
 
     case APP_STATE_START_PROBE_I2C: {
         // Make sure we can communicate with the camera via I2C (for control)
-        ov2640_probe_i2c();
-        s_app.state = APP_STATE_AWAIT_PROBE_I2C;
+        printf("# ==== APP_STATE_START_PROBE_I2C 1\r\n");
+        if (!cam_ctrl_task_probe_i2c()) {
+            printf("# Call to probe I2C failed\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            printf("# ==== APP_STATE_START_PROBE_I2C 2\r\n");
+            s_app.state = APP_STATE_AWAIT_PROBE_I2C;
+        }
     } break;
 
     case APP_STATE_AWAIT_PROBE_I2C: {
-        if (ov2640_succeeded()) {
-            s_app.state = APP_STATE_START_PROBE_SPI;
-        } else if (ov2640_had_error()) {
+        printf("# ==== APP_STATE_AWAIT_PROBE_I2C 1, state = %d\r\n", s_app.state);
+        if (cam_ctrl_task_succeeded()) {
+            printf("# ==== Probe for OV2640 succeeded\r\n");
+            s_app.state = APP_STATE_START_SETUP_CAMERA_CONTROL;
+        } else if (cam_ctrl_task_had_error()) {
             printf("# Probe for OV2640 failed\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
@@ -138,63 +208,67 @@ void APP_Tasks(void) {
         }
     } break;
 
-    case APP_STATE_START_PROBE_SPI: {
-        // Make sure we can communicate with the camera via SPI (for data)
-        arducam_probe_spi();
-        s_app.state = APP_STATE_AWAIT_PROBE_SPI;
+    case APP_STATE_START_SETUP_CAMERA_CONTROL: {
+        printf("# ==== APP_STATE_START_SETUP_CAMERA_CONTROL 1\r\n");
+        if (!cam_ctrl_task_setup_camera()) {
+            printf("# Call to setup camera failed\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            printf("# ==== APP_STATE_START_SETUP_CAMERA_CONTROL 2\r\n");
+            s_app.state = APP_STATE_AWAIT_SETUP_CAMERA_CONTROL;
+        }
     } break;
 
-    case APP_STATE_AWAIT_PROBE_SPI: {
-        if (arducam_succeeded()) {
-            s_app.state = APP_STATE_PROBE_COMPLETE;
-        } else if (arducam_had_error()) {
-            printf("# Probe for ArduCam failed\r\n");
+    case APP_STATE_AWAIT_SETUP_CAMERA_CONTROL: {
+        if (cam_ctrl_task_succeeded()) {
+            printf("# ==== APP_STATE_AWAIT_SETUP_CAMERA_CONTROL 1\r\n");
+            s_app.state = APP_STATE_START_SETUP_CAMERA_DATA;
+        } else if (cam_ctrl_task_had_error()) {
+            printf("# Setup of camera control failed\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
             // probe still pending -- remain in this state
             // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_PROBE_SPI;
+            s_app.state = APP_STATE_START_SETUP_CAMERA_DATA;
         }
     } break;
 
-    case APP_STATE_PROBE_COMPLETE: {
-        // Here, both I2C and SPI operations have been tested and verified
-        printf("# ArduCam detected\r\n");
-        s_app.state = APP_STATE_START_CONFIGURE_CAMERA;
+    case APP_STATE_START_SETUP_CAMERA_DATA: {
+        printf("# ==== APP_STATE_START_SETUP_CAMERA_DATA 1\r\n");
+        if (!cam_data_task_setup_camera()) {
+            printf("# Call to setup camera data failed\r\n");
+            s_app.state = APP_STATE_ERROR;
+        } else {
+            printf("# ==== APP_STATE_START_SETUP_CAMERA_DATA 2\r\n");
+            s_app.state = APP_STATE_AWAIT_SETUP_CAMERA_DATA;
+        }
     } break;
 
-    case APP_STATE_START_CONFIGURE_CAMERA: {
-        // Configure the camera to capture YUV 96 x 96
-        if (!ov2640_set_format(OV2640_FORMAT_YUV)) {
-            printf("# ov2640_configure(OV2640_MODE_YUV) failed\r\n");
+    case APP_STATE_AWAIT_SETUP_CAMERA_DATA: {
+        if (cam_data_task_succeeded()) {
+            printf("# ==== APP_STATE_AWAIT_SETUP_CAMERA_DATA 1\r\n");
+            s_app.state = APP_STATE_CAMERA_READY;
+        } else if (cam_data_task_had_error()) {
+            printf("# Setup camera bus failed\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
-            s_app.state = APP_STATE_AWAIT_CONFIGURE_CAMERA;
-        }
-        break;
-    }
-
-    case APP_STATE_AWAIT_CONFIGURE_CAMERA: {
-        if (ov2640_succeeded()) {
-            printf("# Configured OV2640 for YUV mode\r\n");
-            s_app.state = APP_STATE_START_CAPTURE_IMAGE;
-            break;
-        } else if (ov2640_had_error()) {
-            printf("# Could not configure OV2640 for YUV mode\r\n");
-            s_app.state = APP_STATE_ERROR;
-            break;
-        } else {
-            // remain in this state until configuration completes
+            // probe still pending -- remain in this state
             // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_CONFIGURE_CAMERA;
-            break;
+            s_app.state = APP_STATE_AWAIT_SETUP_CAMERA_DATA;
         }
-    }
+    } break;
+
+    case APP_STATE_CAMERA_READY: {
+        // Camera is initialized and ready to start capturing.
+        // Here, both I2C and SPI operations have been tested and verified
+        printf("# ArduCam ready\r\n");
+        s_app.state = APP_STATE_START_CAPTURE_IMAGE;
+    } break;
 
     case APP_STATE_START_CAPTURE_IMAGE: {
         // Capture YUV 96 x 96
-        if (!arducam_start_capture()) {
-            printf("# arducam_start_capture() YUV failed\r\n");
+        if (!cam_data_task_start_capture()) {
+            printf("# failed to start capture\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
             s_app.state = APP_STATE_AWAIT_CAPTURE_IMAGE;
@@ -204,23 +278,23 @@ void APP_Tasks(void) {
 
     case APP_STATE_AWAIT_CAPTURE_IMAGE: {
         // Check if capture is complete
-        if (arducam_succeeded()) {
+        if (cam_data_task_succeeded()) {
             s_app.state = APP_STATE_LOAD_IMAGE;
-        } else if (arducam_had_error()) {
-            printf("# Arducam capture of YUV failed\r\n");
+        } else if (cam_data_task_had_error()) {
+            printf("# failed to capture image\r\n");
             s_app.state = APP_STATE_ERROR;
         } else {
-            // remain in this state until configuration completes
+            // remain in this state until image capture completes
             // TODO: add timeout?
             s_app.state = APP_STATE_AWAIT_CAPTURE_IMAGE;
         }
     } break;
 
     case APP_STATE_LOAD_IMAGE: {
-        if (arducam_read_fifo(s_yuv_buf, sizeof(s_yuv_buf))) {
+        if (cam_data_task_read_image(s_yuv_buf, sizeof(s_yuv_buf))) {
             s_app.state = APP_STATE_CONVERT_YUV_TO_RGB;
         } else {
-            printf("# Unable to read YUV bytes\r\n");
+            printf("# Unable to read image data\r\n");
             s_app.state = APP_STATE_ERROR;
         }
     } break;
@@ -255,6 +329,16 @@ void APP_Tasks(void) {
 // *****************************************************************************
 // Private (static) code
 
+static inline uint8_t clamp(float v) {
+    if (v < 0.0) {
+        return 0;
+    } else if (v > 255.0) {
+        return 255;
+    } else {
+        return v;
+    }
+}
+
 static void convert_yuv_to_rgb(void) {
     uint8_t *yuv = s_yuv_buf;
     uint8_t *rgb = s_rgb_buf;
@@ -273,16 +357,6 @@ static void convert_yuv_to_rgb(void) {
         *rgb++ = clamp(y1 + 1.4075 * (v - 128));
         *rgb++ = clamp(y1 - 0.3455 * (u - 128) - (0.7169 * (v - 128)));
         *rgb++ = clamp(y1 + 1.7790 * (u - 128));
-    }
-}
-
-static uint8_t clamp(float v) {
-    if (v < 0.0) {
-        return 0;
-    } else if (v > 255.0) {
-        return 255;
-    } else {
-        return v;
     }
 }
 

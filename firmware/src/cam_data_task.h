@@ -1,5 +1,5 @@
 /**
- * @file arducam.h
+ * @file cam_data_task.h
  *
  * MIT License
  *
@@ -28,8 +28,8 @@
  * @brief Interface to the ARDUCAM camera via the SPI bus (data channel)
  */
 
-#ifndef _ARDUCAM_H_
-#define _ARDUCAM_H_
+#ifndef _CAM_DATA_TASK_H_
+#define _CAM_DATA_TASK_H_
 
 // *****************************************************************************
 // Includes
@@ -48,21 +48,61 @@ extern "C" {
 // *****************************************************************************
 // Public types and definitions
 
-typedef enum {
-    ARDUCAM_FORMAT_YUV,
-    ARDUCAM_FORMAT_JPEG,
-} arducam_format_t;
-
 // *****************************************************************************
 // Public declarations
 
-void arducam_init(void);
-void arducam_step(void);
-bool arducam_probe_spi(void);
-bool arducam_start_capture(void);
-bool arducam_read_fifo(uint8_t *buf, size_t capacity);
-bool arducam_succeeded(void);
-bool arducam_had_error(void);
+/**
+ * @brief one-time initialization, to be called at startup.
+ */
+void cam_data_task_init(void);
+
+/**
+ * @brief Run the cam_data_task state machine.  Call repeatedly from the
+ * main superloop.
+ */
+void cam_data_task_step(void);
+
+/**
+ * @brief Initiate a probe on the SPI bus to check for a response.
+ *
+ * After calling this, poll cam_data_task_succeeded() and
+ * cam_data_task_had_error() until one of them returns true.
+ *
+ * Returns true if the call succeeded.
+ */
+bool cam_data_task_probe_spi(void);
+
+/**
+ * @brief Initiate a setup of camera data.
+ *
+ * After calling this, poll cam_data_task_succeeded() and
+ * cam_data_task_had_error() until one of them returns true.
+ *
+ * Returns true if the call succeeded.
+ */
+bool cam_data_task_setup_camera(void);
+
+/**
+ * @brief Initiate an image capture operation.
+ *
+ * Returns true if the call succeeded.
+ */
+bool cam_data_task_start_capture(void);
+
+/**
+ * @brief Read the captured camera image into a user-supplied buffer.
+ *
+ * Returns true if the call succeeded.
+ */
+bool cam_data_task_read_image(uint8_t *buf, size_t capacity);
+
+/**
+ * @brief Following any async operation above, call cam_data_task_succeeded()
+ * and cam_data_task_had_error() until either of them returns true.  Otherwise
+ * remain in the current state and continue calling cam_data_task_step()
+ */
+bool cam_data_task_succeeded(void);
+bool cam_data_task_had_error(void);
 
 // *****************************************************************************
 // End of file
@@ -71,4 +111,4 @@ bool arducam_had_error(void);
 }
 #endif
 
-#endif /* #ifndef _ARDUCAM_H_ */
+#endif /* #ifndef _CAM_DATA_TASK_H_ */

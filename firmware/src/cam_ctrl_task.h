@@ -1,5 +1,5 @@
 /**
- * @file ov2640.h
+ * @file cam_ctrl_task.h
  *
  * MIT License
  *
@@ -28,8 +28,8 @@
  * @brief Interface to the OV2640 camera via the I2C bus
  */
 
-#ifndef _OV2640_H_
-#define _OV2640_H_
+#ifndef _CAM_CTRL_TASK_H_
+#define _CAM_CTRL_TASK_H_
 
 // *****************************************************************************
 // Includes
@@ -46,39 +46,44 @@ extern "C" {
 // *****************************************************************************
 // Public types and definitions
 
-typedef enum {
-    OV2640_FORMAT_YUV,
-    OV2640_FORMAT_JPEG,
-} ov2640_format_t;
-
 // *****************************************************************************
 // Public declarations
 
-void ov2640_init(void);
-void ov2640_step(void);
+void cam_ctrl_task_init(void);
+void cam_ctrl_task_step(void);
 
 /**
- * @brief Probe I2C bus to verify the VID and PID of the camera.
+ * @brief Initiate camera reset.
  *
- * Note: This is an asynchronous call -- poll ov2640_succeeded() and
- * ov2640_had_error() until one of them returns true.
+ * After calling this, poll cam_ctrl_task_succeeded() and
+ * cam_ctrl_task_had_error() until one of them returns true.
+ *
+ * @return true if the camera reset process started.
+ */
+bool cam_ctrl_reset_camera(void);
+
+/**
+ * @brief Initiate probe of I2C bus to verify the VID and PID of the camera.
+ *
+ * After calling this, poll cam_ctrl_task_succeeded() and
+ * cam_ctrl_task_had_error() until one of them returns true.
  *
  * @return true if the probe process started.
  */
-bool ov2640_probe_i2c(void);
+bool cam_ctrl_task_probe_i2c(void);
 
 /**
- * @brief Set the format of the camera.
+ * @brief Initiate configuring camera for YUV422 96 x 96.
  *
- * NOTE: This can only be called after a successful return from ov2640_probe_i2c
+ * After calling this, poll cam_ctrl_task_succeeded() and
+ * cam_ctrl_task_had_error() until one of them returns true.
  *
- * Note: This is an asynchronous call -- poll ov2640_succeeded() and
- * ov2640_had_error() until one of them returns true.
+ * @return true if the configuration process started successfully.
  */
-bool ov2640_set_format(ov2640_format_t format);
+bool cam_ctrl_task_setup_camera(void);
 
-bool ov2640_succeeded(void);
-bool ov2640_had_error(void);
+bool cam_ctrl_task_succeeded(void);
+bool cam_ctrl_task_had_error(void);
 
 // *****************************************************************************
 // End of file
@@ -87,4 +92,4 @@ bool ov2640_had_error(void);
 }
 #endif
 
-#endif /* #ifndef _OV2640_H_ */
+#endif /* #ifndef _CAM_CTRL_TASK_H_ */

@@ -74,25 +74,48 @@ github repository.
 
 ## Online Documents
 
-The only online documentation appears to be example code.  >:[
+This has links to multiple PDF files that explain some of the register
+operations:
 
-BMP output example:
+https://www.arducam.com/product/arducam-2mp-spi-camera-b0067-arduino/
+http://www.uctronics.com/download/Amazon/ArduCAM_Mini_2MP_Camera_Shield_Hardware_Application_Note.pdf
+https://www.uctronics.com/download/Mechanical_Drawing/UC-474(B0067).STEP
+https://www.uctronics.com/download/Amazon/ArduCAM_Mini_2MP_Camera_Shield_DS.pdf
+https://www.arducam.com/downloads/shields/ArduCAM_Camera_Shield_Software_Application_Note.pdf
+https://www.uctronics.com/download/Amazon/B0067-B0068-Pico.pdf
 
-Arduino/ArduCAM/examples/mini/ArduCAM_Mini_2MP_OV2640_functions/ArduCAM_Mini_2MP_OV2640_functions.ino
-
-YUV output example:
+YUV output code example:
 
 /Users/r/Projects/BrainChip/git/RPI-Pico-Cam/tflmicro/Arducam/src/arducam.c
 
-## Alternate YUV and JPG capture
+```
+TfLiteStatus GetImage() =>
+  init:
+      arducam.systemInit()
+      arducam.busDetect():
+          spi_write_reg(0x00, 0x55)
+          verify spi_read_reg(0x00) == 0x55)
+      arducam.cameraProbe():
+          i2c_read(0x0A, &id_H);
+          i2c_read(0x0B, &id_L);
+          if (id_H == 0x26 && (id_L == 0x40||id_L == 0x41 || id_L == 0x42)) {
+      arducam.cameraInit(YUV):
+        wrSensorReg8_8(0xff, 0x01);
+        wrSensorReg8_8(0x12, 0x80);
+        sleep_ms(100);
+        wrSensorRegs8_8(OV2640_YUV_96x96);
+        flush_fifo();
+        start_capture();
 
-For the demo, we want to capture YUV 96 x 96 in order to feed the inference
-engine, but we also want to monitor the image on a host computer screen. Because
-96 x 96 is to small for monitoring, we want a larger format.  However, pushing
-bytes over the serial line is a bottleneck so we need to use image compression,
-i.e. jpeg.
 
-THe plan is to generate one or more images in YUV format and send them to the
-inference engine, then generate 1 image in JPEG format and send it as a byte
-stream over the serial port to the host for display.
+  loop:
+      capture((uint8_t *)image_data));
+          wait for cap done bit
+          read fifo length
+          set fifo burst
+          read fifo (buffer[96*96*2+8], length)
+          flush fifo
+          start capture
+          convert YUV to RGB
 
+```
