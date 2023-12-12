@@ -42,3 +42,4 @@ jlink*.log
 [Dd]ebug/
 [Rr]elease/
 *.zip
+/firmware/spi_cam_test.X/dist/

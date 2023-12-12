@@ -4,8 +4,8 @@
 
 
 project: spi_cam_test
-creation_date: 2023-12-08T09:54:39.068-08:00[America/Los_Angeles]    # ISO 8601 format: https://www.w3.org/TR/NOTE-datetime
-operating_system: Windows 10
+creation_date: 2023-12-11T23:18:41.359-05:00[America/New_York]    # ISO 8601 format: https://www.w3.org/TR/NOTE-datetime
+operating_system: Mac OS X
 mcc_mode: IDE            # [IDE|Standalone|Headless]
 mcc_version: v5.4.1
 mcc_core_version: v5.6.1

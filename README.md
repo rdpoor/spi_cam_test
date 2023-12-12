@@ -74,95 +74,48 @@ github repository.
 
 ## Online Documents
 
-The only online documentation appears to be example code.  >:[
+This has links to multiple PDF files that explain some of the register
+operations:
 
-BMP output example:
+https://www.arducam.com/product/arducam-2mp-spi-camera-b0067-arduino/
+http://www.uctronics.com/download/Amazon/ArduCAM_Mini_2MP_Camera_Shield_Hardware_Application_Note.pdf
+https://www.uctronics.com/download/Mechanical_Drawing/UC-474(B0067).STEP
+https://www.uctronics.com/download/Amazon/ArduCAM_Mini_2MP_Camera_Shield_DS.pdf
+https://www.arducam.com/downloads/shields/ArduCAM_Camera_Shield_Software_Application_Note.pdf
+https://www.uctronics.com/download/Amazon/B0067-B0068-Pico.pdf
 
-Arduino/ArduCAM/examples/mini/ArduCAM_Mini_2MP_OV2640_functions/ArduCAM_Mini_2MP_OV2640_functions.ino
-
-YUV output example:
+YUV output code example:
 
 /Users/r/Projects/BrainChip/git/RPI-Pico-Cam/tflmicro/Arducam/src/arducam.c
 
-Setup:
-
-1. Probe SPI for write / read 0x55
-2. Read and verify vid/pid from I2C bus
-3. Configure for YUV:
-    * wrSensorReg8_8(0xff, 0x01);
-    * wrSensorReg8_8(0x12, 0x80);
-    * sleep_ms(100);
-    * wrSensorRegs8_8(OV2640_YUV_96x96);
-4. reset_fifo() // why is this not at the head of the loop?
-    * write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_MASK)
-5. start_capture()
-    * write_reg(ARDUCHIP_FIFO, FIFO_START_MASK)
-
-Loop:
-6. Wait for completion:
-    * while (!get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)) { asm("nop"); }
-7. Get # of bytes in FIFO:
-    * int length = read_fifo_length();
-8. Slurp bytes from FIFO:
-    * cs_select();      // check if manual CS select is required.
-    * set_fifo_burst(); //Set fifo burst mode
-    * spi_read_blocking(SPI_PORT, BURST_FIFO_READ, value, length);
-    * cs_deselect();
-9. Prepare for next read // why is this not at the head of the loop?
-    * reset_fifo()
-    * start_capture()
-
-
-### tflmicro:
-
 ```
-init:
-    arducam.systemInit()    [image_provider.cpp]
-        => picoSystemInit()     [arducam.c]
-        // sets up GPIOs and peripherals.  (Handled in initialization.c)
-    arducam.busDetect()     [image_provider.cpp]
-        => spiBusDetect()       [arducam.c]
-        write SPI 0x55 to TEST1, verify readback.
-    arducam.cameraProbe()   [image_provider.cpp]
-        => ov2640Probe()        [arducam.c]
-        I2C read 0x0a, 0x0b, verify VID and PID
-    arducam.cameraInit(YUV) [image_provider.cpp]
-        => ov2640Init(YUV)      [arducam.c]
-        wrSensorReg8_8(OV2640_DEV_CTRL_REG, 0x01);
-        wrSensorReg8_8(OV2640_DEV_CTRL_REG_COM7, 0x80);
+TfLiteStatus GetImage() =>
+  init:
+      arducam.systemInit()
+      arducam.busDetect():
+          spi_write_reg(0x00, 0x55)
+          verify spi_read_reg(0x00) == 0x55)
+      arducam.cameraProbe():
+          i2c_read(0x0A, &id_H);
+          i2c_read(0x0B, &id_L);
+          if (id_H == 0x26 && (id_L == 0x40||id_L == 0x41 || id_L == 0x42)) {
+      arducam.cameraInit(YUV):
+        wrSensorReg8_8(0xff, 0x01);
+        wrSensorReg8_8(0x12, 0x80);
         sleep_ms(100);
-        wrSensorRegs8_8(OV2640_YUV_96x96);  // ov2640.h
-        flush_fifo()
-        start_capture()
-
-loop:
-    GetImage                [image_provider.cpp]
-    => capture()              [arducam.c]
-        uint16_t i, count;
-        uint8_t value[96 * 96 * 2 + 8];
-        uint16_t index = 0;
-        while (!get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK));
-        int length = read_fifo_length();
-        // printf("the data length: %d\r\n",length);
-        cs_select();
-        set_fifo_burst(); //Set fifo burst mode
-        spi_read_blocking(SPI_PORT, BURST_FIFO_READ, value, length);
-        cs_deselect();
-        //Flush the FIFO
+        wrSensorRegs8_8(OV2640_YUV_96x96);
         flush_fifo();
-        //Start capture
         start_capture();
-        for (i = 0; i < length - 8; i += 2) {
-            imageDat[index++] = value[i];
-        }
 
-alt loop:
-    flush_fifo()
-    start_capture()
-    if (has_image_data) {
-      write_image_buf();
-    }
-    wait_for_capture()
-    read_image_buf();
-    has_image_data = true;
+
+  loop:
+      capture((uint8_t *)image_data));
+          wait for cap done bit
+          read fifo length
+          set fifo burst
+          read fifo (buffer[96*96*2+8], length)
+          flush fifo
+          start capture
+          convert YUV to RGB
+
 ```

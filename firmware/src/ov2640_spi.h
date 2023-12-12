@@ -1,5 +1,5 @@
 /**
- * @file app.h
+ * @file ov2640_spi.h
  *
  * MIT License
  *
@@ -25,40 +25,49 @@
  */
 
 /**
- * @brief Main code for reading ArduCam OV2640 camera.
+ * @brief Interface to the OV2640 camera via the SPI bus (data channel)
  */
 
-#ifndef _APP_H
-#define _APP_H
+#ifndef _OV2640_SPI_H_
+#define _OV2640_SPI_H_
 
 // *****************************************************************************
 // Includes
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 // *****************************************************************************
 // C++ compatibility
 
-#ifdef __cplusplus // C++ Compatibility
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 // *****************************************************************************
 // Public types and definitions
 
-#define APP_VERSION "0.0.2"
+// *****************************************************************************
+// Public declarations
+
+bool ov2640_spi_read_byte(uint8_t addr, uint8_t *data);
+
+bool ov2640_spi_write_byte(uint8_t addr, uint8_t data);
 
 /**
- * @brief Initialize the application.  Called once at startup.
+ * @brief Write one byte, read rx_buflen bytes
+ *
+ * Note: this is a specialized function for reading a block of bytes from
+ * the OV2640 image buffer.
  */
-void APP_Initialize(void);
+bool ov2640_spi_read_bytes(uint8_t command, uint8_t *rx_buf, size_t rx_buflen);
 
-/**
- * @brief Run the main application's state machine, called frequently from
- * the main loop.
- */
-void APP_Tasks(void);
+bool ov2640_spi_set_bit(uint8_t addr, uint8_t bitmask);
 
-// __attribute__((format(printf, 1, 2))) _Noreturn
-// void APP_panic(const char *format, ...);
+bool ov2640_spi_clear_bit(uint8_t addr, uint8_t bitmask);
+
+bool ov2640_spi_test_bit(uint8_t addr, uint8_t bitmask, bool *value);
 
 // *****************************************************************************
 // End of file
@@ -67,4 +76,4 @@ void APP_Tasks(void);
 }
 #endif
 
-#endif /* #ifndef _APP_H */
+#endif /* #ifndef _OV2640_SPI_H_ */

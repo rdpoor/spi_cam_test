@@ -1,5 +1,5 @@
 /**
- * @file app.h
+ * @file cam_ctrl_task.h
  *
  * MIT License
  *
@@ -25,40 +25,65 @@
  */
 
 /**
- * @brief Main code for reading ArduCam OV2640 camera.
+ * @brief Interface to the OV2640 camera via the I2C bus
  */
 
-#ifndef _APP_H
-#define _APP_H
+#ifndef _CAM_CTRL_TASK_H_
+#define _CAM_CTRL_TASK_H_
 
 // *****************************************************************************
 // Includes
 
+#include <stdbool.h>
+
 // *****************************************************************************
 // C++ compatibility
 
-#ifdef __cplusplus // C++ Compatibility
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 // *****************************************************************************
 // Public types and definitions
 
-#define APP_VERSION "0.0.2"
+// *****************************************************************************
+// Public declarations
+
+void cam_ctrl_task_init(void);
+void cam_ctrl_task_step(void);
 
 /**
- * @brief Initialize the application.  Called once at startup.
+ * @brief Initiate camera reset.
+ *
+ * After calling this, poll cam_ctrl_task_succeeded() and
+ * cam_ctrl_task_had_error() until one of them returns true.
+ *
+ * @return true if the camera reset process started.
  */
-void APP_Initialize(void);
+bool cam_ctrl_reset_camera(void);
 
 /**
- * @brief Run the main application's state machine, called frequently from
- * the main loop.
+ * @brief Initiate probe of I2C bus to verify the VID and PID of the camera.
+ *
+ * After calling this, poll cam_ctrl_task_succeeded() and
+ * cam_ctrl_task_had_error() until one of them returns true.
+ *
+ * @return true if the probe process started.
  */
-void APP_Tasks(void);
+bool cam_ctrl_task_probe_i2c(void);
 
-// __attribute__((format(printf, 1, 2))) _Noreturn
-// void APP_panic(const char *format, ...);
+/**
+ * @brief Initiate configuring camera for YUV422 96 x 96.
+ *
+ * After calling this, poll cam_ctrl_task_succeeded() and
+ * cam_ctrl_task_had_error() until one of them returns true.
+ *
+ * @return true if the configuration process started successfully.
+ */
+bool cam_ctrl_task_setup_camera(void);
+
+bool cam_ctrl_task_succeeded(void);
+bool cam_ctrl_task_had_error(void);
 
 // *****************************************************************************
 // End of file
@@ -67,4 +92,4 @@ void APP_Tasks(void);
 }
 #endif
 
-#endif /* #ifndef _APP_H */
+#endif /* #ifndef _CAM_CTRL_TASK_H_ */

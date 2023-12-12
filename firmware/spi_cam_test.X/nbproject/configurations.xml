@@ -211,8 +211,10 @@
         </logicalFolder>
       </logicalFolder>
       <itemPath>../src/app.h</itemPath>
-      <itemPath>../src/app_ov2640_sensor.h</itemPath>
-      <itemPath>../src/app_ardu_cam.h</itemPath>
+      <itemPath>../src/ov2640_i2c.h</itemPath>
+      <itemPath>../src/ov2640_spi.h</itemPath>
+      <itemPath>../src/cam_ctrl_task.h</itemPath>
+      <itemPath>../src/cam_data_task.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -288,8 +290,10 @@
       <itemPath>../src/config/default/pin_configurations.csv</itemPath>
       <itemPath>../src/main.c</itemPath>
       <itemPath>../src/app.c</itemPath>
-      <itemPath>../src/app_ardu_cam.c</itemPath>
-      <itemPath>../src/app_ov2640_sensor.c</itemPath>
+      <itemPath>../src/ov2640_i2c.c</itemPath>
+      <itemPath>../src/ov2640_spi.c</itemPath>
+      <itemPath>../src/cam_ctrl_task.c</itemPath>
+      <itemPath>../src/cam_data_task.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -312,11 +316,11 @@
         <platformTool>EdbgTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>4.30</languageToolchainVersion>
-        <platform>3</platform>
+        <platform>4</platform>
       </toolsSet>
       <packs>
-        <pack name="CMSIS" vendor="ARM" version="5.8.0"/>
         <pack name="SAMV71_DFP" vendor="Microchip" version="4.10.230"/>
+        <pack name="CMSIS" vendor="ARM" version="5.8.0"/>
       </packs>
       <ScriptingSettings>
       </ScriptingSettings>
