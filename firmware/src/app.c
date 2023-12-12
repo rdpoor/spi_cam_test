@@ -63,10 +63,6 @@ typedef enum {
     APP_STATE_CAMERA_READY,
     APP_STATE_START_CAPTURE_IMAGE,
     APP_STATE_AWAIT_CAPTURE_IMAGE,
-    APP_STATE_LOAD_IMAGE,
-    APP_STATE_CONVERT_YUV_TO_RGB,
-    APP_STATE_EMIT_RGB,
-    APP_STATE_SUCCESS,
     APP_STATE_ERROR,
 } app_state_t;
 
@@ -82,7 +78,8 @@ typedef struct {
 /**
  * @buffer to hold YUV data captured from camera
  */
-static uint8_t s_yuv_buf[YUV_BUFFER_SIZE];
+static uint8_t s_buf_a[YUV_BUFFER_SIZE];
+static uint8_t s_buf_b[YUV_BUFFER_SIZE];
 
 /**
  * @buffer to hold RGB data converted from YUV
@@ -100,9 +97,9 @@ static app_ctx_t s_app;
  * Note that this reads four bytes at a time (y0, u, y1, v) and writes six
  * (r0, g0, b0, r1, g1, b1)
  */
-static void convert_yuv_to_rgb(void);
+__attribute__((unused)) static void convert_yuv_to_rgb(uint8_t *yuv_buf);
 
-static uint8_t clamp(float v);
+__attribute__((unused)) static uint8_t clamp(float v);
 
 // *****************************************************************************
 // Public code
@@ -114,7 +111,7 @@ void APP_Initialize(void) {
     s_app.state = APP_STATE_INIT;
     s_app.i2c_drv_handle = DRV_HANDLE_INVALID;
     cam_ctrl_task_init();
-    cam_data_task_init();
+    cam_data_task_init(s_buf_a, s_buf_b, YUV_BUFFER_SIZE);
 }
 
 void APP_Tasks(void) {
@@ -277,46 +274,8 @@ void APP_Tasks(void) {
     }
 
     case APP_STATE_AWAIT_CAPTURE_IMAGE: {
-        // Check if capture is complete
-        if (cam_data_task_succeeded()) {
-            s_app.state = APP_STATE_LOAD_IMAGE;
-        } else if (cam_data_task_had_error()) {
-            printf("# failed to capture image\r\n");
-            s_app.state = APP_STATE_ERROR;
-        } else {
-            // remain in this state until image capture completes
-            // TODO: add timeout?
-            s_app.state = APP_STATE_AWAIT_CAPTURE_IMAGE;
-        }
-    } break;
-
-    case APP_STATE_LOAD_IMAGE: {
-        if (cam_data_task_read_image(s_yuv_buf, sizeof(s_yuv_buf))) {
-            s_app.state = APP_STATE_CONVERT_YUV_TO_RGB;
-        } else {
-            printf("# Unable to read image data\r\n");
-            s_app.state = APP_STATE_ERROR;
-        }
-    } break;
-
-    case APP_STATE_CONVERT_YUV_TO_RGB: {
-        convert_yuv_to_rgb();
-        s_app.state = APP_STATE_EMIT_RGB;
-    } break;
-
-    case APP_STATE_EMIT_RGB: {
-        // STUB
-        s_app.state = APP_STATE_SUCCESS;
-    } break;
-
-    case APP_STATE_SUCCESS: {
-        // Success.  Compute FPS and loop back to capture another frame
-        uint32_t now_sys = SYS_TIME_CounterGet();
-        uint32_t dt_us = SYS_TIME_CountToUS(now_sys - s_app.timestamp_sys);
-        s_app.timestamp_sys = now_sys;
-        printf("# FPS: %f\n", 1000000.0 / dt_us);
-        // printf("."); fflush(stdout);
-        s_app.state = APP_STATE_START_CAPTURE_IMAGE;
+        // cam_data_task will loop itself -- remain in this state...
+        s_app.state = APP_STATE_AWAIT_CAPTURE_IMAGE;
     } break;
 
     case APP_STATE_ERROR: {
@@ -339,11 +298,11 @@ static inline uint8_t clamp(float v) {
     }
 }
 
-static void convert_yuv_to_rgb(void) {
-    uint8_t *yuv = s_yuv_buf;
+static void convert_yuv_to_rgb(uint8_t *yuv_buf) {
+    uint8_t *yuv = yuv_buf;
     uint8_t *rgb = s_rgb_buf;
 
-    for (int i=0; i<sizeof(s_yuv_buf); i+=4) {
+    for (int i=0; i<YUV_BUFFER_SIZE; i+=4) {
         // read 4 bytes: [y0, u, y1, v]
         uint8_t y0 = *yuv++;
         uint8_t u = *yuv++;

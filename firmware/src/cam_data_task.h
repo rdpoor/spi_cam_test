@@ -53,8 +53,10 @@ extern "C" {
 
 /**
  * @brief one-time initialization, to be called at startup.
+ *
+ * Pass in two equal sized buffer to receive image data (double buffered).
  */
-void cam_data_task_init(void);
+void cam_data_task_init(uint8_t *yuv_buf_a, uint8_t *yuv_buf_b, size_t buflen);
 
 /**
  * @brief Run the cam_data_task state machine.  Call repeatedly from the
@@ -83,18 +85,11 @@ bool cam_data_task_probe_spi(void);
 bool cam_data_task_setup_camera(void);
 
 /**
- * @brief Initiate an image capture operation.
+ * @brief Initiate continuous image capture, writing data to the given buffer.
  *
- * Returns true if the call succeeded.
+ * TODO: cam_data_task should provide double buffering.
  */
 bool cam_data_task_start_capture(void);
-
-/**
- * @brief Read the captured camera image into a user-supplied buffer.
- *
- * Returns true if the call succeeded.
- */
-bool cam_data_task_read_image(uint8_t *buf, size_t capacity);
 
 /**
  * @brief Following any async operation above, call cam_data_task_succeeded()

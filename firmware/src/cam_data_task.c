@@ -88,21 +88,22 @@ typedef enum {
     CAM_DATA_TASK_STATE_INIT,
     CAM_DATA_TASK_STATE_PROBE_SPI,
     CAM_DATA_TASK_STATE_RETRY_WAIT,
-    CAM_DATA_TASK_STATE_START_CAPTURE,
     CAM_DATA_TASK_STATE_AWAIT_CAPTURE,
-    CAM_DATA_TASK_STATE_START_READ_FIFO,
-    CAM_DATA_TASK_STATE_AWAIT_READ_FIFO,
+    CAM_DATA_TASK_STATE_START_CAPTURE,
     CAM_DATA_TASK_STATE_SUCCESS,
     CAM_DATA_TASK_STATE_ERROR,
 } cam_data_task_state_t;
 
 typedef struct {
     cam_data_task_state_t state; // current state
-    SYS_TIME_HANDLE delay; // general delay timer
-    int retry_count;       // general retry counter
-    uint8_t *yuv_buf;
-    size_t yuv_buf_capacity;
-    uint32_t timestamp_sys; // for telemetry
+    SYS_TIME_HANDLE delay;       // general delay timer
+    int retry_count;             // general retry counter
+    uint8_t *buf_a;              // buffer for captured image (a)
+    uint8_t *buf_b;              // buffer for captured image (b)
+    uint8_t *put_buf;            // buffer actively being filled
+    uint8_t *get_buf;            // filled buffer available to user
+    size_t buflen;               // length of image buffers
+    uint32_t timestamp_sys;      // for telemetry
 } cam_data_task_ctx_t;
 
 // *****************************************************************************
@@ -155,12 +156,20 @@ static void set_holdoff(uint32_t ms);
  */
 static void await_holdoff(cam_data_task_state_t next_state);
 
+static void swap_buffers(void);
+static void swap_buffers_aux(uint8_t *put, uint8_t *get);
 
 // *****************************************************************************
 // Public code
 
-void cam_data_task_init(void) {
+void cam_data_task_init(uint8_t *yuv_buf_a, uint8_t *yuv_buf_b, size_t buflen) {
+    s_cam_data_task.buf_a = yuv_buf_a;
+    s_cam_data_task.buf_b = yuv_buf_b;
+    s_cam_data_task.buflen = buflen;
+    s_cam_data_task.put_buf = yuv_buf_a;
+    swap_buffers();  // prepare first buffer for writing
     s_cam_data_task.state = CAM_DATA_TASK_STATE_INIT;
+
 }
 
 void cam_data_task_step(void) {
@@ -212,93 +221,81 @@ void cam_data_task_step(void) {
         await_holdoff(CAM_DATA_TASK_STATE_PROBE_SPI);
     } break;
 
-    // ENTRY POINT FOR cam_data_task_start_capture()
-    case CAM_DATA_TASK_STATE_START_CAPTURE: {
-        if (!reset_fifo()) {
-            printf("# failed to reset fifo\r\n");
-            s_cam_data_task.state = CAM_DATA_TASK_STATE_ERROR;
-            break;
-        }
-        // if (!clear_capture_complete()) {
-        //     printf("# failed to clear capture complete flag\r\n");
-        //     s_cam_data_task.state = CAM_DATA_TASK_STATE_ERROR;
-        //     break;
-        // }
-        memset(s_cam_data_task.yuv_buf, 0, s_cam_data_task.yuv_buf_capacity); // debugging
-        s_cam_data_task.timestamp_sys = SYS_TIME_CounterGet();
-        if (!start_capture()) {
-            printf("# Start capture failed.\r\n");
-            s_cam_data_task.state = CAM_DATA_TASK_STATE_ERROR;
-            break;
-        }
-        // Capture successfully started
-        s_cam_data_task.retry_count = 0;
-        s_cam_data_task.state = CAM_DATA_TASK_STATE_AWAIT_CAPTURE;
-        break;
-    }
-
     case CAM_DATA_TASK_STATE_AWAIT_CAPTURE: {
         bool complete;
+
         if (!ov2640_spi_test_bit(ARDUCHIP_TRIG, CAP_DONE_MASK, &complete)) {
             printf("# Failed to read completion bit\r\n");
             // remain in this state and retry
-        } else if (complete) {
-            uint32_t dt = SYS_TIME_CounterGet() - s_cam_data_task.timestamp_sys;
-            LED0__Toggle();
-            printf("    capture = %3ld tics, ", dt);
-            s_cam_data_task.state = CAM_DATA_TASK_STATE_SUCCESS;
             break;
         }
-        // remain in this state.
-        s_cam_data_task.retry_count += 1;
-    } break;
 
-    case CAM_DATA_TASK_STATE_START_READ_FIFO: {
+        if (!complete) {
+            // not yet ready.  yield to other tasks, but remain in this state.
+            s_cam_data_task.state = CAM_DATA_TASK_STATE_AWAIT_CAPTURE;
+            break;
+        }
+
+        // Camera reports completion.  Get # of bytes in image buffer.
         uint8_t len1, len2, len3;
         if (!ov2640_spi_read_byte(FIFO_SIZE1, &len1) ||
             !ov2640_spi_read_byte(FIFO_SIZE2, &len2) ||
             !ov2640_spi_read_byte(FIFO_SIZE3, &len3)) {
             printf("# failed to read FIFO length\r\n");
-            // remain in this state to retry
+            // remain in this state and retry
             break;
         }
         uint32_t length = ((len3 << 16) | (len2 << 8) | len1) & 0x07fffff;
-        if (length != s_cam_data_task.yuv_buf_capacity) {
-            printf("# FIFO length is %ld, expected %d\r\n", length,
-                   s_cam_data_task.yuv_buf_capacity);
-            s_cam_data_task.state = CAM_DATA_TASK_STATE_ERROR;
+
+        // Verify correct number of bytes received
+        if (length != s_cam_data_task.buflen) {
+            printf("# Image buffer is %ld bytes, expected %d\r\n", length,
+                   s_cam_data_task.buflen);
+            // length error.  Restart capture
+            s_cam_data_task.state = CAM_DATA_TASK_STATE_START_CAPTURE;
             break;
         }
-        s_cam_data_task.timestamp_sys = SYS_TIME_CounterGet();
-        if (!ov2640_spi_read_bytes(BURST_FIFO_READ, s_cam_data_task.yuv_buf,
+
+        // Bulk read image buffer into current user buffer
+        if (!ov2640_spi_read_bytes(BURST_FIFO_READ, s_cam_data_task.put_buf,
                                    length)) {
             printf("# Could not read FIFO contents\r\n");
-            s_cam_data_task.state = CAM_DATA_TASK_STATE_ERROR;
+            // read error.  Restart capture
+            s_cam_data_task.state = CAM_DATA_TASK_STATE_START_CAPTURE;
             break;
         }
-        // TESTING: reset FIFO as soon as we've slurped bits
+
+        swap_buffers();
+
+        uint32_t now_sys = SYS_TIME_CounterGet();
+        uint32_t dt_us = SYS_TIME_CountToUS(now_sys - s_cam_data_task.timestamp_sys);
+        s_cam_data_task.timestamp_sys = now_sys;
+        printf("FPS: %f\n", 1000000.0 / dt_us);
+        LED0__Toggle();
+        // FALL THROUGH to immediately start a new capture
+        // === v === fall through! === v ===
+    }
+
+    // ENTRY POINT FOR cam_data_task_start_capture()
+    case CAM_DATA_TASK_STATE_START_CAPTURE: {
         if (!reset_fifo()) {
-            printf("# failed to reset fifo after reading image buffer\r\n");
-            s_cam_data_task.state = CAM_DATA_TASK_STATE_ERROR;
+            printf("# failed to reset fifo\r\n");
+            // remain this state to restart capture
+            s_cam_data_task.state = CAM_DATA_TASK_STATE_START_CAPTURE;
             break;
         }
-        // NOTE: we could start another read operation here (flush_fifo(),
-        // start_capture())
 
-        s_cam_data_task.state = CAM_DATA_TASK_STATE_AWAIT_READ_FIFO;
-    } break;
-
-    case CAM_DATA_TASK_STATE_AWAIT_READ_FIFO: {
-        // TODO: perhaps await_holdoff()?
-        uint32_t dt = SYS_TIME_CounterGet() - s_cam_data_task.timestamp_sys;
-        printf("load = %3ld tics, samples = ", dt);
-        // more debugging
-        for (int i=0; i<20; i++) {
-            printf("%02x ", s_cam_data_task.yuv_buf[i]);
+        if (!start_capture()) {
+            printf("# failed to start capture\r\n");
+            // remain this state to restart capture
+            s_cam_data_task.state = CAM_DATA_TASK_STATE_START_CAPTURE;
+            break;
         }
-        printf("%02x ", s_cam_data_task.yuv_buf[s_cam_data_task.yuv_buf_capacity-1]);
-        s_cam_data_task.state = CAM_DATA_TASK_STATE_SUCCESS;
-    } break;
+
+        // Capture has started.  Start polling for completion bit
+        s_cam_data_task.state = CAM_DATA_TASK_STATE_AWAIT_CAPTURE;
+        break;
+    }
 
     case CAM_DATA_TASK_STATE_SUCCESS: {
         // remain in this state until a call to cam_data_task_probe_spi,
@@ -329,13 +326,6 @@ bool cam_data_task_setup_camera(void) {
 
 bool cam_data_task_start_capture(void) {
     s_cam_data_task.state = CAM_DATA_TASK_STATE_START_CAPTURE;
-    return true;
-}
-
-bool cam_data_task_read_image(uint8_t *buf, size_t capacity) {
-    s_cam_data_task.yuv_buf = buf;
-    s_cam_data_task.yuv_buf_capacity = capacity;
-    s_cam_data_task.state = CAM_DATA_TASK_STATE_START_READ_FIFO;
     return true;
 }
 
@@ -377,6 +367,22 @@ static void await_holdoff(cam_data_task_state_t next_state) {
     if (SYS_TIME_DelayIsComplete(s_cam_data_task.delay)) {
         s_cam_data_task.state = next_state;
     } // else remain in current state...
+}
+
+static void swap_buffers(void) {
+    if (s_cam_data_task.put_buf == s_cam_data_task.buf_a) {
+        // buf_a has been filled -- prep buf_b for filling
+        swap_buffers_aux(s_cam_data_task.buf_b, s_cam_data_task.buf_a);
+    } else {
+        // buf_b has been filled -- prep buf_a for filling
+        swap_buffers_aux(s_cam_data_task.buf_a, s_cam_data_task.buf_b);
+    }
+}
+
+static void swap_buffers_aux(uint8_t *put, uint8_t *get) {
+    memset(put, 0, s_cam_data_task.buflen);
+    s_cam_data_task.put_buf = put;
+    s_cam_data_task.get_buf = get;
 }
 
 #if 0

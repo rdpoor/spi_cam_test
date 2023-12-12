@@ -5300,7 +5300,7 @@
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
     &lt;Values dnOrder=&quot;1&quot;&gt;
-      &lt;User dnOrder=&quot;0&quot; value=&quot;1500000&quot;/&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;2000000&quot;/&gt;
     &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
@@ -5388,7 +5388,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;spi0&gt;
   &lt;spi0 dnOrder=&quot;0&quot; id=&quot;SPI_CSR3_SCBR_VALUE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;spi0&quot; value=&quot;100&quot;/&gt;
+      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;spi0&quot; value=&quot;75&quot;/&gt;
     &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
@@ -5409,7 +5409,9 @@
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="spi0" name="SPI_DUMMY_DATA"/>
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;spi0&gt;
   &lt;spi0 dnOrder=&quot;0&quot; id=&quot;SPI_DUMMY_DATA&quot;&gt;
-    &lt;Values dnOrder=&quot;0&quot;/&gt;
+    &lt;Values dnOrder=&quot;0&quot;&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;0&quot;/&gt;
+    &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
 </value>
@@ -6524,7 +6526,7 @@
       </entry>
       <entry>
          <file>../src/config/default/definitions.h</file>
-         <hash>5b460d15fbf007db60093005a3928803910bcbbf2f0102cdf2588d597cf7f734</hash>
+         <hash>ec3fb73951bcfb827a80d2149590837a6606a3989a9b235fc2a5a2783f98a77b</hash>
       </entry>
       <entry>
          <file>../src/config/default/device.h</file>
@@ -6568,7 +6570,7 @@
       </entry>
       <entry>
          <file>../src/config/default/initialization.c</file>
-         <hash>07c42890131ca17afd4835c3994c2a38b72008487c2b49f4dcf8fa4bfc01ddb6</hash>
+         <hash>7c14b0be7913531780133d80aeaf88f3725524e366175b1bed089ae00d55ef0c</hash>
       </entry>
       <entry>
          <file>../src/config/default/interrupts.c</file>
@@ -6628,7 +6630,7 @@
       </entry>
       <entry>
          <file>../src/config/default/peripheral/spi/spi_master/plib_spi0_master.c</file>
-         <hash>0c0c071e7eff8ac0b268b5c67a3db1b8aed4c2ba33b882e3e35fbfd78e49b0c8</hash>
+         <hash>411e2c191c994b0ae172e15578d5ea812a23d781dd884f899ade06c5782c2059</hash>
       </entry>
       <entry>
          <file>../src/config/default/peripheral/spi/spi_master/plib_spi0_master.h</file>

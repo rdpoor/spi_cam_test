@@ -71,7 +71,7 @@ void SPI0_Initialize( void )
 
 
     /* Set up clock Polarity, data phase, Communication Width, Baud Rate */
-    SPI0_REGS->SPI_CSR[3] = SPI_CSR_CPOL_IDLE_LOW | SPI_CSR_NCPHA_VALID_LEADING_EDGE | SPI_CSR_BITS_8_BIT | SPI_CSR_SCBR(100)| SPI_CSR_DLYBS(0) | SPI_CSR_DLYBCT(0)  | SPI_CSR_CSAAT(1) ;
+    SPI0_REGS->SPI_CSR[3] = SPI_CSR_CPOL_IDLE_LOW | SPI_CSR_NCPHA_VALID_LEADING_EDGE | SPI_CSR_BITS_8_BIT | SPI_CSR_SCBR(75)| SPI_CSR_DLYBS(0) | SPI_CSR_DLYBCT(0)  | SPI_CSR_CSAAT(1) ;
 
 
 
@@ -142,11 +142,11 @@ bool SPI0_WriteRead( void* pTransmitData, size_t txSize, void* pReceiveData, siz
             {
                 if(dataBits == SPI_CSR_BITS_8_BIT)
                 {
-                    SPI0_REGS->SPI_TDR = 0xff;
+                    SPI0_REGS->SPI_TDR = 0x0;
                 }
                 else
                 {
-                    SPI0_REGS->SPI_TDR = (uint16_t)(0xffff);
+                    SPI0_REGS->SPI_TDR = (uint16_t)(0x00);
                 }
                 dummySize--;
             }
