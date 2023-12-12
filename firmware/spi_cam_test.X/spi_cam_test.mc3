@@ -5300,7 +5300,7 @@
       &lt;/Boolean&gt;
     &lt;/Attributes&gt;
     &lt;Values dnOrder=&quot;1&quot;&gt;
-      &lt;User dnOrder=&quot;0&quot; value=&quot;2000000&quot;/&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;4000000&quot;/&gt;
     &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
@@ -5362,7 +5362,14 @@
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="spi0" name="SPI_CSR3_DLYBS"/>
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;spi0&gt;
   &lt;spi0 dnOrder=&quot;0&quot; id=&quot;SPI_CSR3_DLYBS&quot;&gt;
-    &lt;Values dnOrder=&quot;0&quot;/&gt;
+    &lt;Attributes dnOrder=&quot;0&quot;&gt;
+      &lt;Boolean dnOrder=&quot;0&quot; id=&quot;visible&quot;&gt;
+        &lt;Value dnOrder=&quot;0&quot;&gt;true&lt;/Value&gt;
+      &lt;/Boolean&gt;
+    &lt;/Attributes&gt;
+    &lt;Values dnOrder=&quot;1&quot;&gt;
+      &lt;User dnOrder=&quot;0&quot; value=&quot;20&quot;/&gt;
+    &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
 </value>
@@ -5388,7 +5395,7 @@
          <value>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;spi0&gt;
   &lt;spi0 dnOrder=&quot;0&quot; id=&quot;SPI_CSR3_SCBR_VALUE&quot;&gt;
     &lt;Values dnOrder=&quot;0&quot;&gt;
-      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;spi0&quot; value=&quot;75&quot;/&gt;
+      &lt;Dynamic dnOrder=&quot;0&quot; id=&quot;spi0&quot; value=&quot;38&quot;/&gt;
     &lt;/Values&gt;
   &lt;/spi0&gt;
 &lt;/spi0&gt;
@@ -6630,7 +6637,7 @@
       </entry>
       <entry>
          <file>../src/config/default/peripheral/spi/spi_master/plib_spi0_master.c</file>
-         <hash>411e2c191c994b0ae172e15578d5ea812a23d781dd884f899ade06c5782c2059</hash>
+         <hash>ac1bd131e8adad7ce2149e16a2348665215e27b5efc724c53dfc9fc4da072e81</hash>
       </entry>
       <entry>
          <file>../src/config/default/peripheral/spi/spi_master/plib_spi0_master.h</file>

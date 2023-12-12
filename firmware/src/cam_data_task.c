@@ -42,6 +42,10 @@
 #define RESET_DELAY_MS 100
 #define RETRY_DELAY_MS 100
 
+// Software watchdog: If more than CAPTURE_TIMEOUT_TICS elapse between starting
+// a capture and the capture complete bit getting set, restart the capture.
+#define CAPTURE_TIMEOUT_TICS 500
+
 #define MAX_CAPTURE_WAIT_COUNT 15000
 
 // MSB in byte 0 signifies a write operation
@@ -103,7 +107,9 @@ typedef struct {
     uint8_t *put_buf;            // buffer actively being filled
     uint8_t *get_buf;            // filled buffer available to user
     size_t buflen;               // length of image buffers
+    uint32_t started_at;         // sys tics when capture started
     uint32_t timestamp_sys;      // for telemetry
+    uint32_t frame_count;        // frame count
 } cam_data_task_ctx_t;
 
 // *****************************************************************************
@@ -159,6 +165,8 @@ static void await_holdoff(cam_data_task_state_t next_state);
 static void swap_buffers(void);
 static void swap_buffers_aux(uint8_t *put, uint8_t *get);
 
+static void dump_image(uint8_t *buf, size_t n_bytes);
+
 // *****************************************************************************
 // Public code
 
@@ -169,7 +177,7 @@ void cam_data_task_init(uint8_t *yuv_buf_a, uint8_t *yuv_buf_b, size_t buflen) {
     s_cam_data_task.put_buf = yuv_buf_a;
     swap_buffers();  // prepare first buffer for writing
     s_cam_data_task.state = CAM_DATA_TASK_STATE_INIT;
-
+    s_cam_data_task.frame_count = 0;
 }
 
 void cam_data_task_step(void) {
@@ -224,6 +232,13 @@ void cam_data_task_step(void) {
     case CAM_DATA_TASK_STATE_AWAIT_CAPTURE: {
         bool complete;
 
+        uint32_t dt = SYS_TIME_CounterGet() - s_cam_data_task.started_at;
+        if (dt > CAPTURE_TIMEOUT_TICS) {
+            printf("# Timed out waiting for capture completion -- retry\r\n");
+            s_cam_data_task.state = CAM_DATA_TASK_STATE_START_CAPTURE;
+            break;
+        }
+
         if (!ov2640_spi_test_bit(ARDUCHIP_TRIG, CAP_DONE_MASK, &complete)) {
             printf("# Failed to read completion bit\r\n");
             // remain in this state and retry
@@ -266,11 +281,13 @@ void cam_data_task_step(void) {
         }
 
         swap_buffers();
+        // simulate user processing of get_buf
+        dump_image(s_cam_data_task.get_buf, s_cam_data_task.buflen);
 
         uint32_t now_sys = SYS_TIME_CounterGet();
-        uint32_t dt_us = SYS_TIME_CountToUS(now_sys - s_cam_data_task.timestamp_sys);
+        uint32_t tics = now_sys - s_cam_data_task.timestamp_sys;
         s_cam_data_task.timestamp_sys = now_sys;
-        printf("FPS: %f\n", 1000000.0 / dt_us);
+        printf("tics: %ld, FPS: %f\n", tics, 1000000.0 / SYS_TIME_CountToUS(tics));
         LED0__Toggle();
         // FALL THROUGH to immediately start a new capture
         // === v === fall through! === v ===
@@ -292,7 +309,9 @@ void cam_data_task_step(void) {
             break;
         }
 
-        // Capture has started.  Start polling for completion bit
+        // Capture has started.  Set software watchdog and start polling for
+        // completion bit
+        s_cam_data_task.started_at = SYS_TIME_CounterGet();
         s_cam_data_task.state = CAM_DATA_TASK_STATE_AWAIT_CAPTURE;
         break;
     }
@@ -383,6 +402,14 @@ static void swap_buffers_aux(uint8_t *put, uint8_t *get) {
     memset(put, 0, s_cam_data_task.buflen);
     s_cam_data_task.put_buf = put;
     s_cam_data_task.get_buf = get;
+}
+
+static void dump_image(uint8_t *buf, size_t n_bytes) {
+    int skip = n_bytes / 20;
+    for (int i=0; i<n_bytes; i+=skip) {
+        printf("%02x ", buf[i]);
+    }
+    // printf("\r\n");
 }
 
 #if 0
