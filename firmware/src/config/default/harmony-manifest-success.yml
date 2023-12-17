@@ -4,14 +4,14 @@
 
 
 project: spi_cam_test
-creation_date: 2023-12-04T16:28:25.237-08:00[America/Los_Angeles]    # ISO 8601 format: https://www.w3.org/TR/NOTE-datetime
+creation_date: 2023-12-17T12:43:33.673-08:00[America/Los_Angeles]    # ISO 8601 format: https://www.w3.org/TR/NOTE-datetime
 operating_system: Windows 10
 mcc_mode: IDE            # [IDE|Standalone|Headless]
-mcc_version: v5.3.7
-mcc_core_version: v5.5.7
+mcc_version: v5.4.1
+mcc_core_version: v5.6.1
 mplabx_version: v6.15        # if MPLAB X plugin only
 harmony_version: v1.3.2
-compiler: XC32 (v4.30) 
+compiler: XC32 4.30
 
 modules:
     - {name: "core", version: "v3.13.1"}
