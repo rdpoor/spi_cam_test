@@ -65,21 +65,26 @@
 #define BUF_SIZE 4096
 
 #define ARDUCHIP_TEST1 0x00 // TEST register
+
+#define ARDUCHIP_CAPTURE_CONTROL 0x01
+#define FRAME_COUNT 1
+
 #define ARDUCHIP_MODE 0x02  // Mode register
 #define MCU2LCD_MODE 0x00
 #define CAM2LCD_MODE 0x01
 #define LCD2MCU_MODE 0x02
-
-#define ARDUCHIP_TRIG 0x41 // Trigger source
-#define VSYNC_MASK 0x01
-#define SHUTTER_MASK 0x02
-#define CAP_DONE_MASK 0x08
 
 #define ARDUCHIP_FIFO 0x04 // FIFO and I2C control
 #define FIFO_CLEAR_MASK 0x01
 #define FIFO_START_MASK 0x02
 #define FIFO_RDPTR_RST_MASK 0x10
 #define FIFO_WRPTR_RST_MASK 0x20
+
+#define ARDUCHIP_TRIG 0x41 // Trigger source
+#define VSYNC_MASK 0x01
+#define SHUTTER_MASK 0x02
+#define CAP_DONE_MASK 0x08
+
 
 #define BURST_FIFO_READ 0x3C  // Burst FIFO read operation
 #define SINGLE_FIFO_READ 0x3D // Single FIFO read operation
@@ -219,6 +224,13 @@ void APP_ARDU_CAM_Tasks(void) {
     case APP_ARDU_CAM_STATE_RESET_FIFO: {
         // Empty the FIFO prior to capturing an image
 
+        // Explicitly set up to read one frame per capture
+        if (!spi_write_reg(ARDUCHIP_CAPTURE_CONTROL, 1)) {
+            printf("# Failed to configure for single frame capture")
+            appData.state = APP_ARDU_CAM_STATE_ERROR;
+            break;
+        }
+
         if (!reset_fifo()) {
             printf("# failed to reset fifo\r\n");
             appData.state = APP_ARDU_CAM_STATE_ERROR;
@@ -330,11 +342,14 @@ static bool emit_image(const uint8_t *buf, size_t buflen) {
 }
 
 static bool reset_fifo(void) {
-    return spi_write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_MASK);
+    return true;
 }
 
 static bool start_capture(void) {
-    return spi_write_reg(ARDUCHIP_FIFO, FIFO_START_MASK);
+    // reset fifo AND start capture in one operation
+    return spi_write_reg(ARDUCHIP_FIFO,
+                         (FIFO_CLEAR_MASK | FIFO_RDPTR_RST_MASK |
+                          FIFO_START_MASK | FIFO_WRPTR_RST_MASK));
 }
 
 static uint32_t read_fifo_length(void) {

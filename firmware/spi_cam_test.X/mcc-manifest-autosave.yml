@@ -2,8 +2,8 @@
 
 manifest_file_version: 1.0.0
 project: spi_cam_test
-creation_date: 2023-12-11T23:18:41.466-05:00[America/New_York]
-operating_system: Mac OS X
+creation_date: 2023-12-18T06:59:34.960-08:00[America/Los_Angeles]
+operating_system: Windows 10
 mcc_mode: IDE
 mcc_mode_version: v6.15
 device_name: ATSAMV71Q21B
